@@ -145,6 +145,16 @@ const { KEY, LABELS } = require('../lib/key');
   const csvText = require('fs').readFileSync(await csv.path(), 'utf8');
   assert.ok(csvText.includes('24ОФ1;завершили')); ok('csv summary downloads');
 
+  const bp = await ctx.newPage();
+  bp.on('pageerror', (e) => errors.push('board: ' + e));
+  await bp.goto(B + '/board');
+  await bp.fill('#pw', 'pw'); await bp.click('#loginBtn');
+  await bp.waitForSelector('#boardBox:not(.hidden)');
+  assert.ok((await bp.locator('#tbl').textContent()).includes('24ОФ1')); ok('board shows groups');
+  await bp.click('#hideBtn');
+  assert.equal(await bp.locator('#tbl').getAttribute('class'), 'hide'); ok('board hide toggle');
+  await bp.close();
+
   assert.deepEqual(errors, []); ok('no page errors');
   console.log('\nALL', n, 'BROWSER CHECKS PASSED');
   await browser.close(); app.close(); sb.server.close();

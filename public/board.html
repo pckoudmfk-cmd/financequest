@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>GFP Quest · Табло</title>
+<style>
+  :root{
+    --bg:#F7FAF8; --surface:#FFFFFF; --card:#FFFFFF; --primary:#1F6F78; --accent:#56B6A3;
+    --text:#1D2939; --muted:#52606D; --border:#DDE7E3; --on-primary:#FFFFFF; --bar:#DDE7E3;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0F1720; --surface:#16212B; --card:#1B2836; --primary:#72D6C9; --accent:#9FE6D6;
+    --text:#F8FAFC; --muted:#B6C2CF; --border:#2A3B4D; --on-primary:#0F1720; --bar:#2A3B4D;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"Times New Roman",Times,serif;font-size:clamp(18px,1.9vw,30px);line-height:1.35}
+  header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 28px;background:var(--surface);border-bottom:1px solid var(--border)}
+  header h1{margin:0;font-size:1.35em;color:var(--primary);flex:1;min-width:260px}
+  .ctl{display:flex;gap:8px;flex-wrap:wrap}
+  button,input{font-family:inherit;font-size:.65em}
+  button{background:transparent;color:var(--primary);border:1px solid var(--primary);border-radius:8px;padding:6px 14px;cursor:pointer}
+  button.on{background:var(--primary);color:var(--on-primary)}
+  input{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px}
+  main{padding:22px 28px 40px}
+  .login{max-width:460px;margin:80px auto;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px}
+  .err{color:#B42318;min-height:1.2em;font-size:.7em;margin-top:8px}
+  table{border-collapse:separate;border-spacing:0 10px;width:100%}
+  th{color:var(--muted);font-weight:normal;font-size:.65em;text-align:center;padding:0 8px}
+  th.l,td.l{text-align:left}
+  td{background:var(--card);padding:14px 10px;text-align:center;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+  td:first-child{border-left:1px solid var(--border);border-radius:12px 0 0 12px}
+  td:last-child{border-right:1px solid var(--border);border-radius:0 12px 12px 0}
+  td.place{font-size:1.7em;font-weight:bold;color:var(--primary);width:1.6em}
+  td.group{font-size:1.25em;font-weight:bold;text-align:left}
+  td.total{min-width:260px;text-align:left}
+  .totnum{font-size:1.35em;font-weight:bold;color:var(--primary)}
+  .bar{height:10px;border-radius:6px;background:var(--bar);margin-top:6px;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .8s}
+  .sub{font-size:.62em;color:var(--muted)}
+  .hide td.num span,.hide .totnum,.hide td.place span{filter:blur(14px);user-select:none}
+  .hide .bar i{width:0 !important}
+  .muted{color:var(--muted)}
+  .hidden{display:none}
+  .foot{margin-top:6px;font-size:.6em;color:var(--muted);text-align:center}
+  @media (max-width:900px){main{padding:12px} th,td{padding:6px 4px} td.total{min-width:120px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>GFP Advisory Practice · промежуточные результаты</h1>
+  <div class="ctl hidden" id="ctl">
+    <button type="button" id="hideBtn">Скрыть баллы</button>
+    <button type="button" id="detailBtn" class="on">Детали по станциям</button>
+    <button type="button" id="fsBtn">На весь экран</button>
+    <button type="button" id="themeBtn">Тема</button>
+  </div>
+</header>
+<main>
+  <section class="login" id="loginBox">
+    <h2 style="margin-top:0;color:var(--primary)">Вход</h2>
+    <p class="muted" style="font-size:.7em">Введите пароль преподавателя. Он нужен один раз, затем табло обновляется само.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <input type="password" id="pw" placeholder="Пароль" autocomplete="current-password" style="flex:1;min-width:180px">
+      <button type="button" id="loginBtn" class="on">Открыть табло</button>
+    </div>
+    <div class="err" id="loginErr"></div>
+  </section>
+  <div id="boardBox" class="hidden">
+    <table id="tbl"></table>
+    <div class="foot" id="foot"></div>
+  </div>
+</main>
+
+<script>
+  var password = '', data = null, showDetail = true, hidden = false, timer = null;
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function n1(x){ return (Math.round(x * 10) / 10).toString().replace('.', ','); }
+
+  function setTheme(m){ document.documentElement.setAttribute('data-theme', m); try{ localStorage.setItem('gfpq-theme', m); }catch(e){} }
+  try{ var t = localStorage.getItem('gfpq-theme'); if(t === 'light' || t === 'dark') setTheme(t); }catch(e){}
+  $('themeBtn').onclick = function(){ setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); };
+  $('fsBtn').onclick = function(){
+    if(document.fullscreenElement){ document.exitFullscreen(); }
+    else if(document.documentElement.requestFullscreen){ document.documentElement.requestFullscreen(); }
+  };
+  $('hideBtn').onclick = function(){
+    hidden = !hidden;
+    $('hideBtn').textContent = hidden ? 'Показать баллы' : 'Скрыть баллы';
+    $('hideBtn').classList.toggle('on', hidden);
+    render();
+  };
+  $('detailBtn').onclick = function(){
+    showDetail = !showDetail;
+    $('detailBtn').classList.toggle('on', showDetail);
+    render();
+  };
+
+  function load(){
+    return fetch('/api/board', {headers: {'x-teacher-password': password}}).then(function(r){
+      return r.json().catch(function(){ return {}; }).then(function(j){
+        if(!r.ok){ var e = new Error(j.error || ('HTTP ' + r.status)); e.status = r.status; throw e; }
+        data = j; render();
+      });
+    });
+  }
+  function login(){
+    password = $('pw').value;
+    $('loginErr').textContent = '';
+    if(!password){ $('loginErr').textContent = 'Введите пароль.'; return; }
+    load().then(function(){
+      try{ sessionStorage.setItem('gfpq-board', password); }catch(e){}
+      $('loginBox').classList.add('hidden');
+      $('boardBox').classList.remove('hidden');
+      $('ctl').classList.remove('hidden');
+      timer = setInterval(function(){ load().catch(function(){}); }, 10000);
+    }).catch(function(e){
+      $('loginErr').textContent = e.status === 401 ? 'Неверный пароль.' : 'Не удалось подключиться: ' + e.message;
+    });
+  }
+  $('loginBtn').onclick = login;
+  $('pw').addEventListener('keydown', function(e){ if(e.key === 'Enter') login(); });
+  try{ var sp = sessionStorage.getItem('gfpq-board'); if(sp){ $('pw').value = sp; login(); } }catch(e){}
+
+  function render(){
+    if(!data) return;
+    var rows = data.groups.slice();
+    rows.sort(function(a, b){
+      var pa = a.place || 99, pb = b.place || 99;
+      return pa !== pb ? pa - pb : a.group.localeCompare(b.group);
+    });
+    var h = '<tr><th>Место</th><th class="l">Группа</th>';
+    if(showDetail){ for(var s = 1; s <= 6; s++) h += '<th>Станция ' + s + '<br><span class="sub">из 10</span></th>'; }
+    h += '<th class="l">Итого жюри (среднее, из 60)</th><th>Станций пройдено</th><th>Закрытые задания</th></tr>';
+    rows.forEach(function(g){
+      var j = g.jury, pct = j.any ? Math.min(100, j.total / 60 * 100) : 0;
+      h += '<tr><td class="place"><span>' + (g.place || '—') + '</span></td><td class="group">' + esc(g.group) + '</td>';
+      if(showDetail){
+        for(var s2 = 1; s2 <= 6; s2++){
+          var v = j.per[s2];
+          h += '<td class="num"><span>' + (v === null || v === undefined ? '—' : n1(v)) + '</span></td>';
+        }
+      }
+      h += '<td class="total"><div class="totnum">' + (j.any ? n1(j.total) : '—') + '</div><div class="bar"><i style="width:' + pct + '%"></i></div></td>';
+      h += '<td class="num"><span>' + g.stations_done + ' из 6</span>' + (g.finished ? '<div class="sub">завершили</div>' : '') + '</td>';
+      h += '<td class="num"><span>' + (g.closed.checked ? g.closed.correct + ' из ' + g.closed.total : '—') + '</span>' + (g.closed.checked ? '<div class="sub">блоков ' + g.closed.checked + ' из ' + g.closed.blocks + '</div>' : '') + '</td></tr>';
+    });
+    $('tbl').innerHTML = h;
+    $('tbl').className = hidden ? 'hide' : '';
+    $('foot').textContent = 'Баллы жюри усреднены по всем членам жюри. Закрытые задания показаны как число верных пунктов. Обновлено ' + new Date().toLocaleTimeString();
+  }
+</script>
+</body>
+</html>

@@ -104,6 +104,14 @@ const { KEY } = require('../lib/key');
   r = await get('/api/teacher', H);
   const jj = r.json.groups.find((x) => x.group === G).jury;
   assert.deepEqual(Object.keys(jj).sort(), ['Иванова', 'Петров'].sort()); ok('teacher sees all jurors');
+  // board: averages over jurors, no answers or juror names leak
+  assert.equal((await get('/api/board')).status, 401);
+  r = await get('/api/board', H);
+  assert.equal(r.status, 200);
+  const bg = r.json.groups.find((x) => x.group === G);
+  assert.equal(bg.jury.per['1'], 3);       // (5 + 1) / 2
+  assert.equal(bg.jury.total, 3); assert.equal(bg.place, 1); assert.equal(bg.jury.jurors, 2);
+  assert.ok(!JSON.stringify(r.json).includes('Иванова') && !JSON.stringify(r.json).includes('Typed')); ok('board averages, places, no leaks');
   r = await post('/api/teacher', { action: 'reset', groups: [G] }, H);
   assert.equal(r.status, 400); ok('reset needs confirmation');
   r = await post('/api/teacher', { action: 'reset', groups: [G], confirm: 'RESET' }, H);
