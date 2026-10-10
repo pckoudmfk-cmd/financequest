@@ -1,7 +1,23 @@
 {
   "cleanUrls": true,
-  "regions": ["fra1"],
+  "regions": [
+    "fra1"
+  ],
   "headers": [
-    { "source": "/api/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] }
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/ping",
+      "schedule": "0 6 * * *"
+    }
   ]
 }

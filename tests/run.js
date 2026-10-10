@@ -19,6 +19,9 @@ const { KEY } = require('../lib/key');
   let n = 0;
   const ok = (name) => console.log('ok', ++n, name);
 
+  r = await get('/api/ping');
+  assert.equal(r.status, 200); assert.equal(r.json.ok, true); ok('ping reads the database');
+
   // group handling
   let r = await get('/api/state?group=' + encodeURIComponent('XX1'));
   assert.equal(r.status, 404); assert.equal(r.json.code, 'unknown_group'); ok('unknown group rejected');
