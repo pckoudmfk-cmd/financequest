@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GFP Advisory — Case Rotation</title>
+<style>
+  :root{
+    --s1:#2F6F62; --s2:#3A4570; --s3:#8C6A28; --s4:#A8543A; --s5:#6B4A78; --s6:#66753C;
+  }
+  html[data-theme="light"]{
+    --bg:#F7FAF8;
+    --panel:#FFFFFF;
+    --sidebar-bg:#FFFFFF;
+    --sidebar-bg2:#F7FAF8;
+    --ink:#1D2939;
+    --ink-soft:#52606D;
+    --border:#DDE7E3;
+    --gold:#1F6F78;
+    --gold-soft:#1F6F78;
+    --hl:#56B6A3;
+    --ok:#2E6E52; --ok-bg:#DFF3E6;
+    --bad:#9C3B3B; --bad-bg:#F6E1DE;
+    --shadow: 0 1px 2px rgba(29,41,57,0.06), 0 6px 18px rgba(29,41,57,0.07);
+  }
+  html[data-theme="dark"]{
+    --bg:#0F1720;
+    --panel:#1B2836;
+    --sidebar-bg:#16212B;
+    --sidebar-bg2:#1B2836;
+    --ink:#F8FAFC;
+    --ink-soft:#B6C2CF;
+    --border:#2A3B4D;
+    --gold:#72D6C9;
+    --gold-soft:#72D6C9;
+    --hl:#9FE6D6;
+    --hl:#90E0EF;
+    --ok:#4C9172; --ok-bg:#1C3329;
+    --bad:#C4726E; --bad-bg:#3A2323;
+    --shadow: 0 1px 2px rgba(0,0,0,0.35), 0 6px 20px rgba(0,0,0,0.4);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Times New Roman', Times, serif;
+    color:var(--ink);
+    background:var(--bg);
+    line-height:1.55;
+  }
+  h1,h2,h3,h4{font-family:'Times New Roman', Times, serif;margin:0;font-weight:700;color:var(--gold);}
+  .app{display:flex;min-height:100vh;}
+  .app.locked{filter:blur(3px);pointer-events:none;user-select:none;}
+
+  /* ---------- THEME TOGGLE ---------- */
+  .theme-toggle{display:inline-flex;border:1px solid var(--border);border-radius:20px;overflow:hidden;}
+  .theme-btn{
+    font-family:inherit;font-size:12.5px;border:none;background:transparent;color:var(--gold);
+    padding:6px 14px;cursor:pointer;
+  }
+  .theme-btn.active{background:var(--gold);color:var(--panel);}
+
+  /* ---------- LOGIN ---------- */
+  .login-screen{
+    position:fixed;inset:0;background:var(--sidebar-bg);
+    display:flex;align-items:center;justify-content:center;z-index:80;padding:24px;
+  }
+  .login-top-toggle{position:absolute;top:22px;right:26px;}
+  .login-card{
+    background:var(--panel);border:1px solid var(--border);border-radius:4px;
+    padding:44px 46px;max-width:440px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,0.18);
+    position:relative;
+  }
+  .login-card::before{
+    content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--hl);
+  }
+  .login-mark{
+    display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;
+    border:1px solid var(--gold);color:var(--gold);font-weight:700;font-size:16px;letter-spacing:0.04em;margin-bottom:22px;
+  }
+  .login-card h1{font-size:24px;margin-bottom:6px;}
+  .login-sub{color:var(--ink-soft);font-size:13.5px;margin-bottom:28px;}
+  .login-field label{display:block;color:var(--ink-soft);font-size:12.5px;letter-spacing:0.03em;margin-bottom:8px;}
+  .login-field input{
+    width:100%;padding:12px 13px;background:var(--bg);border:1px solid var(--border);
+    border-radius:2px;color:var(--ink);font-family:inherit;font-size:15px;
+  }
+  .login-field input:focus{outline:none;border-color:var(--hl);}
+  .login-error{color:var(--bad);font-size:12.5px;margin-top:8px;display:none;}
+  .login-btn{
+    margin-top:22px;width:100%;background:var(--gold);border:1px solid var(--gold);
+    color:var(--panel);font-size:15px;font-weight:700;
+    padding:13px 16px;border-radius:2px;cursor:pointer;
+  }
+  .login-btn:hover{opacity:0.9;}
+
+  /* ---------- SIDEBAR ---------- */
+  .sidebar{
+    width:288px;flex:none;background:var(--sidebar-bg);color:var(--ink);
+    display:flex;flex-direction:column;padding:26px 20px 18px;
+    position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--border);
+  }
+  .brand{border-bottom:1px solid var(--border);padding-bottom:18px;margin-bottom:16px;}
+  .brand-mark{
+    display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;
+    border:1px solid var(--gold);color:var(--gold);font-weight:700;font-size:12.5px;margin-bottom:12px;
+  }
+  .brand h1{font-size:20px;margin-bottom:6px;}
+  .brand-sub{font-size:12px;color:var(--ink-soft);margin:0;}
+
+  .theme-toggle-row{margin:14px 0;}
+
+  .team-tag{
+    background:var(--sidebar-bg2);border:1px solid var(--border);border-radius:3px;
+    padding:12px 14px;margin:14px 0;font-size:13px;
+  }
+  .team-tag .lbl{font-size:10.5px;letter-spacing:0.08em;color:var(--ink-soft);text-transform:uppercase;margin-bottom:4px;}
+  .team-tag .val{font-size:17px;color:var(--ink);font-weight:700;}
+
+  .intro-btn{
+    width:100%;background:transparent;border:1px solid var(--gold);color:var(--gold);
+    padding:9px 10px;border-radius:2px;font-size:13px;cursor:pointer;margin-bottom:6px;font-family:inherit;
+  }
+  .intro-btn:hover{background:var(--sidebar-bg2);}
+  .station-nav{display:flex;flex-direction:column;gap:5px;flex:1;margin-top:10px;}
+  .station-tab{
+    display:flex;align-items:center;gap:11px;background:transparent;border:1px solid transparent;
+    border-radius:2px;color:var(--gold);padding:10px 9px;cursor:pointer;text-align:left;font-family:inherit;
+  }
+  .station-tab:hover{background:var(--sidebar-bg2);}
+  .station-tab.current{background:var(--sidebar-bg2);border-color:var(--hl);color:var(--gold);}
+  .tab-num{font-weight:700;font-size:18px;width:26px;text-align:center;color:var(--gold);flex:none;}
+  .tab-info{flex:1;display:flex;flex-direction:column;line-height:1.3;}
+  .tab-info strong{font-size:13.5px;font-weight:700;}
+  .tab-info small{font-size:11px;color:var(--ink-soft);}
+  .tab-done{flex:none;width:15px;height:15px;accent-color:var(--gold);cursor:pointer;}
+
+  .overall-progress{margin-top:16px;padding-top:14px;border-top:1px solid var(--border);}
+  .progress-label{font-size:11px;color:var(--ink-soft);margin-bottom:7px;letter-spacing:0.02em;}
+  .progress-track{background:var(--sidebar-bg2);height:5px;border-radius:3px;overflow:hidden;border:1px solid var(--border);}
+  .progress-fill{background:var(--hl);height:100%;width:0%;transition:width .3s;}
+  .progress-text{font-size:11px;color:var(--ink-soft);margin-top:7px;}
+
+  /* ---------- MAIN ---------- */
+  .main{flex:1;padding:30px 44px 70px;max-width:940px;}
+  .station-header{
+    display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;
+    padding-bottom:14px;margin-bottom:26px;border-bottom:2px solid var(--ink);
+  }
+  .station-eyebrow{font-size:12.5px;color:var(--ink-soft);letter-spacing:0.04em;margin-bottom:3px;}
+  .station-header h2{font-size:29px;}
+  .header-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .timer-widget{display:flex;align-items:center;gap:12px;background:var(--panel);
+    border:1px solid var(--border);padding:9px 15px;border-radius:3px;box-shadow:var(--shadow);}
+  .timer-display{font-size:24px;font-weight:700;min-width:64px;text-align:center;}
+  .timer-display.time-up{color:var(--bad);animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+  .timer-controls{display:flex;gap:6px;}
+  .timer-controls button, .print-btn{
+    font-family:inherit;font-size:12.5px;border:1px solid var(--gold);background:var(--bg);
+    padding:7px 10px;border-radius:2px;cursor:pointer;color:var(--gold);
+  }
+  .timer-controls button:hover, .print-btn:hover{background:var(--sidebar-bg2);}
+  .download-btn{
+    font-weight:700;font-size:14.5px;border:1px solid var(--gold);
+    background:var(--gold);color:var(--panel);padding:12px 22px;border-radius:2px;cursor:pointer;
+  }
+  .download-btn:hover{opacity:0.9;}
+
+  .station-panel{display:none;}
+  .station-panel.active{display:block;}
+
+  .brief{background:var(--panel);border:1px solid var(--border);border-left:4px solid var(--accent,var(--s1));
+    padding:18px 22px;margin-bottom:26px;border-radius:2px;box-shadow:var(--shadow);}
+  .brief-row{display:flex;gap:18px;margin-bottom:11px;}
+  .brief-row:last-child{margin-bottom:0;}
+  .brief-label{flex:none;width:100px;font-size:11px;letter-spacing:0.06em;color:var(--ink-soft);
+    padding-top:2px;font-weight:700;text-transform:uppercase;}
+  .brief-row p{margin:0;font-size:15px;}
+
+  .task-block{margin-bottom:32px;}
+  .task-title{font-size:18px;margin-bottom:5px;}
+  .task-hint{font-size:13.5px;color:var(--ink-soft);margin-bottom:13px;}
+  .case-box{background:var(--panel);border:1px solid var(--border);border-radius:2px;padding:18px 22px;
+    margin-bottom:15px;box-shadow:var(--shadow);}
+  .wordbank{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:15px;}
+  .chip{background:var(--bg);border:1px solid var(--border);border-radius:20px;
+    padding:4px 13px;font-size:13px;color:var(--ink-soft);}
+
+  table.grid{width:100%;border-collapse:collapse;margin-bottom:8px;background:var(--panel);
+    box-shadow:var(--shadow);}
+  table.grid th, table.grid td{border:1px solid var(--border);padding:9px 11px;font-size:14px;vertical-align:top;}
+  table.grid th{background:var(--sidebar-bg2);text-align:left;font-weight:700;font-size:12.5px;letter-spacing:0.02em;
+    text-transform:uppercase;color:var(--ink-soft);}
+  table.grid td.num{width:32px;text-align:center;color:var(--ink-soft);}
+
+  select, input[type=text], textarea{
+    font-family:inherit;font-size:14px;border:1px solid var(--border);border-radius:2px;
+    padding:7px 9px;width:100%;background:var(--panel);color:var(--ink);
+  }
+  select:focus, input[type=text]:focus, textarea:focus{outline:none;border-color:var(--hl);}
+  textarea{resize:vertical;min-height:66px;}
+  select.correct, input.correct{border-color:var(--ok);background:var(--ok-bg);}
+  select.incorrect, input.incorrect{border-color:var(--bad);background:var(--bad-bg);}
+  select:disabled, input:disabled{opacity:0.85;cursor:not-allowed;}
+
+  .gap-select{display:inline-block;width:auto;min-width:200px;margin:0 3px;font-size:14px;
+    border-bottom:2px solid var(--accent,var(--s3));border-top:none;border-left:none;border-right:none;
+    border-radius:0;background:transparent;padding:2px 4px;}
+  .passage{background:var(--panel);border:1px solid var(--border);border-radius:2px;padding:20px 24px;
+    font-size:15px;line-height:1.95;box-shadow:var(--shadow);}
+
+  .btn{font-weight:700;font-size:14px;border:1px solid var(--gold);
+    background:var(--gold);color:var(--panel);padding:9px 18px;border-radius:2px;cursor:pointer;}
+  .btn:hover{opacity:0.9;}
+  .btn.ghost{background:transparent;color:var(--gold);border:1px solid var(--gold);}
+  .btn.ghost:hover{background:var(--panel);box-shadow:var(--shadow);}
+  .btn:disabled{opacity:0.55;cursor:not-allowed;}
+  .score-readout{font-size:14px;margin-left:12px;font-weight:700;color:var(--ink);}
+
+  .hidden{display:none !important;}
+
+  .word{cursor:pointer;padding:0 1px;border-radius:2px;}
+  .word.flagged{background:#F3DFA0;text-decoration:underline;text-decoration-color:var(--bad);}
+
+  .vocab-tick-list{display:flex;flex-direction:column;gap:5px;margin-top:8px;}
+  .vocab-tick{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--ink-soft);}
+  .vocab-tick.used{color:var(--ok);font-weight:700;}
+  .vocab-tick .dot{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--ink-soft);flex:none;}
+  .vocab-tick.used .dot{background:var(--ok);border-color:var(--ok);}
+  .memo-progress{font-size:14px;margin-top:9px;}
+  .memo-header{display:flex;flex-wrap:wrap;gap:14px;font-size:13.5px;margin-bottom:0;}
+  .memo-header .field{display:flex;align-items:center;gap:6px;}
+  .memo-header input{width:150px;padding:4px 7px;}
+
+  .finish-box{
+    margin-top:38px;padding:26px 28px;background:var(--panel);border:1px solid var(--border);
+    border-left:4px solid var(--gold);border-radius:2px;box-shadow:var(--shadow);text-align:center;
+  }
+  .finish-box h3{font-size:19px;margin-bottom:8px;}
+  .finish-box p{font-size:14px;color:var(--ink-soft);margin:0 0 18px;}
+
+  .overlay{position:fixed;inset:0;background:rgba(15,20,30,0.55);display:flex;align-items:center;
+    justify-content:center;z-index:60;padding:24px;}
+  .overlay-card{background:var(--panel);max-width:560px;width:100%;border-radius:3px;padding:30px 32px;
+    border-top:4px solid var(--gold);max-height:86vh;overflow-y:auto;box-shadow:0 30px 60px rgba(0,0,0,0.3);}
+  .overlay-card h2{font-size:22px;margin-bottom:14px;}
+  .overlay-card ol{padding-left:20px;font-size:14.5px;}
+  .overlay-card li{margin-bottom:8px;}
+
+
+  .login-btn.secondary{background:transparent;color:var(--gold);margin-top:10px;}
+  .login-btn:disabled{opacity:0.6;cursor:wait;}
+  .sync{display:flex;align-items:center;gap:7px;margin-top:9px;font-size:12px;color:var(--ink-soft);}
+  .sync-dot{width:9px;height:9px;border-radius:50%;background:#9aa6ad;flex:none;}
+  .sync[data-state="saved"] .sync-dot{background:#2E8B57;}
+  .sync[data-state="saving"] .sync-dot,.sync[data-state="pending"] .sync-dot{background:#D9A21B;}
+  .sync[data-state="offline"] .sync-dot,.sync[data-state="error"] .sync-dot{background:#C0504D;}
+  .finish-note{margin:14px 0 0;font-size:13.5px;color:var(--ink-soft);}
+
+  @media (max-width:820px){
+    .app{flex-direction:column;}
+    .sidebar{width:100%;height:auto;position:relative;}
+    .main{padding:22px;max-width:none;}
+  }
+  @media print{
+    .sidebar,.timer-widget,.overlay,.check-row,.print-btn,.download-btn,.finish-box{display:none !important;}
+    .station-panel{display:block !important;margin-bottom:40px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-top-toggle theme-toggle">
+    <button class="theme-btn active" data-mode="light" onclick="setTheme('light')">Light</button>
+    <button class="theme-btn" data-mode="dark" onclick="setTheme('dark')">Dark</button>
+  </div>
+  <div class="login-card">
+    <span class="login-mark">GFP</span>
+    <h1>Team check-in</h1>
+    <p class="login-sub">Enter your group's name to begin the case rotation. It will appear throughout the exercise and in your team's final results file.</p>
+    <div class="login-field">
+      <label>Group name</label>
+      <input type="text" id="loginGroup" placeholder="e.g. 24ОФ1" autocomplete="off" autocapitalize="characters">
+    </div>
+    <div class="login-error" id="loginError"></div>
+    <button class="login-btn" id="loginBtn" onclick="handleLogin()">Enter the case rotation</button>
+    <button class="login-btn secondary hidden" id="offlineBtn" onclick="continueOffline()">Continue without connection</button>
+  </div>
+</div>
+<!-- ============ INTRO OVERLAY ============ -->
+<div class="overlay hidden" id="introOverlay">
+  <div class="overlay-card">
+    <h2>How the rotation works</h2>
+    <ol>
+      <li>Your whole team works together on each station; one person records the team's answers on this screen.</li>
+      <li>Each station opens with a short brief (objective and context) explaining which GFP department has requested the work.</li>
+      <li>The teacher starts the 8-minute timer at the top of the page for the current station.</li>
+      <li>Where a task has one correct answer (classification, matching, gap-fill), press <em>Check answers</em> for instant feedback. Once checked, those answers are locked and cannot be changed.</li>
+      <li>Open tasks (memos, case analysis) are reviewed by the teacher and stay editable throughout.</li>
+      <li>Your answers are saved automatically; the indicator under the group name shows the status. If the page is closed or reloaded, enter the same group name and everything comes back.</li>
+      <li>On the last station, press <strong>Download results</strong>. This confirms the final version on the server and gives you the results as a file.</li>
+    </ol>
+    <button class="btn overlay-close" onclick="toggleIntro()">Close</button>
+  </div>
+</div>
+
+<div class="app locked" id="app">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">GFP</span>
+      <h1>Advisory Practice</h1>
+      <p class="brand-sub">A six-station case rotation for finance and banking English (СПО 38.02.06 / 38.02.07)</p>
+    </div>
+
+    <div class="theme-toggle-row theme-toggle">
+      <button class="theme-btn active" data-mode="light" onclick="setTheme('light')">Light</button>
+      <button class="theme-btn" data-mode="dark" onclick="setTheme('dark')">Dark</button>
+    </div>
+
+    <div class="team-tag">
+      <div class="lbl">Group</div>
+      <div class="val" id="teamTagValue">—</div>
+      <div class="sync" id="syncStatus" data-state="idle"><span class="sync-dot"></span><span id="syncText">Not connected</span></div>
+    </div>
+
+    <button class="intro-btn" onclick="toggleIntro()">Rotation instructions</button>
+    <nav class="station-nav" id="stationNav">
+      <button class="station-tab current" data-target="s1" onclick="showStation(1)">
+        <span class="tab-num">1</span>
+        <span class="tab-info"><strong>Economic Activity</strong><small>8 min, classification</small></span>
+        <input type="checkbox" class="tab-done" data-station="1" onchange="onDoneChange()">
+      </button>
+      <button class="station-tab" data-target="s2" onclick="showStation(2)">
+        <span class="tab-num">2</span>
+        <span class="tab-info"><strong>Business Entities</strong><small>8 min, error correction</small></span>
+        <input type="checkbox" class="tab-done" data-station="2" onchange="onDoneChange()">
+      </button>
+      <button class="station-tab" data-target="s3" onclick="showStation(3)">
+        <span class="tab-num">3</span>
+        <span class="tab-info"><strong>Industry Exhibitions</strong><small>8 min, gapped text</small></span>
+        <input type="checkbox" class="tab-done" data-station="3" onchange="onDoneChange()">
+      </button>
+      <button class="station-tab" data-target="s4" onclick="showStation(4)">
+        <span class="tab-num">4</span>
+        <span class="tab-info"><strong>Production &amp; Safety</strong><small>8 min, mini-case</small></span>
+        <input type="checkbox" class="tab-done" data-station="4" onchange="onDoneChange()">
+      </button>
+      <button class="station-tab" data-target="s5" onclick="showStation(5)">
+        <span class="tab-num">5</span>
+        <span class="tab-info"><strong>Financial Reporting</strong><small>8 min, matching</small></span>
+        <input type="checkbox" class="tab-done" data-station="5" onchange="onDoneChange()">
+      </button>
+      <button class="station-tab" data-target="s6" onclick="showStation(6)">
+        <span class="tab-num">6</span>
+        <span class="tab-info"><strong>Marketing &amp; Strategy</strong><small>8 min, memo</small></span>
+        <input type="checkbox" class="tab-done" data-station="6" onchange="onDoneChange()">
+      </button>
+    </nav>
+    <div class="overall-progress">
+      <div class="progress-label">Rotation progress</div>
+      <div class="progress-track"><div class="progress-fill" id="overallFill"></div></div>
+      <div class="progress-text" id="overallText">0 of 6 stations completed · 48 min total</div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+    <header class="station-header">
+      <div>
+        <div class="station-eyebrow" id="stationEyebrow">Station 1</div>
+        <h2 id="stationTitle">Economic Activity</h2>
+      </div>
+      <div class="header-controls">
+        <div class="timer-widget">
+          <div class="timer-display" id="timerDisplay">08:00</div>
+          <div class="timer-controls">
+            <button onclick="timerStart()">Start</button>
+            <button onclick="timerPause()">Pause</button>
+            <button onclick="timerReset()">Reset</button>
+          </div>
+        </div>
+        <button class="print-btn" onclick="window.print()">Print</button>
+      </div>
+    </header>
+
+    <!-- ================= STATION 1 ================= -->
+    <section id="s1" class="station-panel active" style="--accent:var(--s1);">
+      <div class="brief">
+        <div class="brief-row"><span class="brief-label">Objective</span>
+          <p>Demonstrate knowledge of economic sectors, types of resources, and core vocabulary related to economic activity.</p></div>
+        <div class="brief-row"><span class="brief-label">Context</span>
+          <p>GFP's Economics Department is preparing a sector analysis report. They need you to classify data and complete a summary for the client.</p></div>
+      </div>
+
+      <div class="task-block">
+        <h3 class="task-title">Part A. Sector classification (4 points)</h3>
+        <p class="task-hint">Read the list of economic activities below. Place each one in the correct column. Every item is used exactly once.</p>
+        <div class="wordbank" id="s1-bank"></div>
+        <table class="grid">
+          <thead><tr><th style="width:33%">Primary sector</th><th style="width:33%">Secondary sector</th><th style="width:34%">Tertiary sector</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><select data-label="S1 Part A – Primary #1" class="s1a"></select></td>
+              <td><select data-label="S1 Part A – Secondary #1" class="s1a"></select></td>
+              <td><select data-label="S1 Part A – Tertiary #1" class="s1a"></select></td>
+            </tr>
+            <tr>
+              <td><select data-label="S1 Part A – Primary #2" class="s1a"></select></td>
+              <td><select data-label="S1 Part A – Secondary #2" class="s1a"></select></td>
+              <td><select data-label="S1 Part A – Tertiary #2" class="s1a"></select></td>
+            </tr>
+            <tr>
+              <td><select data-label="S1 Part A – Primary #3" class="s1a"></select></td>
+              <td><select data-label="S1 Part A – Secondary #3" class="s1a"></select></td>
+              <td><select data-label="S1 Part A – Tertiary #3" class="s1a"></select></td>
+            </tr>
+            <tr>
+              <td><select data-label="S1 Part A – Primary #4" class="s1a"></select></td>
+              <td><select data-label="S1 Part A – Secondary #4" class="s1a"></select></td>
+              <td><select data-label="S1 Part A – Tertiary #4" class="s1a"></select></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="check-row"><button class="btn ghost" onclick="checkStation('s1a', this)">Check answers</button><span class="score-readout" id="score-s1a"></span></div>
+      </div>
+
+      <div class="task-block">
+        <h3 class="task-title">Part B. Sentence completion (4 points)</h3>
+        <p class="task-hint">Choose the correct term from the term box to complete each sentence. Use each term once only.</p>
+        <div class="wordbank" id="s1b-bank"></div>
+        <p>1. Machinery, tools, and equipment used in production processes are classified as
+          <select class="gap-select s1b" data-label="S1 Part B – sentence 1"></select>.</p>
+        <p>2. When demand for goods and services exceeds available supply, economists refer to the problem of
+          <select class="gap-select s1b" data-label="S1 Part B – sentence 2"></select>.</p>
+        <p>3. Workers, their knowledge, skills, and physical capacity are collectively known as
+          <select class="gap-select s1b" data-label="S1 Part B – sentence 3"></select>.</p>
+        <p>4. The primary purpose of all economic activity is to
+          <select class="gap-select s1b" data-label="S1 Part B – sentence 4"></select> by producing and distributing goods and services.</p>
+        <div class="check-row"><button class="btn ghost" onclick="checkStation('s1b', this)">Check answers</button><span class="score-readout" id="score-s1b"></span></div>
+      </div>
+
+      <div class="task-block">
+        <h3 class="task-title">Part C. True / False / Correct (2 points)</h3>
+        <p class="task-hint">Mark each statement T or F. If it is false, rewrite it correctly in the box.</p>
+        <table class="grid">
+          <thead><tr><th class="num">#</th><th style="width:50%">Statement</th><th style="width:80px">T / F</th><th>Correction (if false)</th></tr></thead>
+          <tbody>
+            <tr><td class="num">1</td><td>Foodstuffs and dairy products are examples of perishable goods because they cannot be stored for a long time.</td>
+              <td><select class="s1c" data-label="S1 Part C – statement 1 (T/F)"><option value=""></option><option value="t">T</option><option value="f">F</option></select></td>
+              <td><input type="text" placeholder="you can write here, if necessary" data-label="S1 Part C – statement 1 correction"></td></tr>
+            <tr><td class="num">2</td><td>Consumer goods are items used to produce other goods, such as factory machinery.</td>
+              <td><select class="s1c" data-label="S1 Part C – statement 2 (T/F)"><option value=""></option><option value="t">T</option><option value="f">F</option></select></td>
+              <td><input type="text" placeholder="you can write here, if necessary" data-label="S1 Part C – statement 2 correction"></td></tr>
+            <tr><td class="num">3</td><td>A part-time job typically requires fewer working hours per week than a full-time job.</td>
+              <td><select class="s1c" data-label="S1 Part C – statement 3 (T/F)"><option value=""></option><option value="t">T</option><option value="f">F</option></select></td>
+              <td><input type="text" placeholder="you can write here, if necessary" data-label="S1 Part C – statement 3 correction"></td></tr>
+            <tr><td class="num">4</td><td>The tertiary sector includes activities such as oil extraction and coal mining.</td>
+              <td><select class="s1c" data-label="S1 Part C – statement 4 (T/F)"><option value=""></option><option value="t">T</option><option value="f">F</option></select></td>
+              <td><input type="text" placeholder="you can write here, if necessary" data-label="S1 Part C – statement 4 correction"></td></tr>
+          </tbody>
+        </table>
+        <div class="check-row"><button class="btn ghost" onclick="checkStation('s1c', this)">Check T/F answers</button><span class="score-readout" id="score-s1c"></span></div>
+      </div>
+    </section>
+
+    <!-- ================= STATION 2 ================= -->
+    <section id="s2" class="station-panel" style="--accent:var(--s2);">
+      <div class="brief">
+        <div class="brief-row"><span class="brief-label">Objective</span>
+          <p>Identify and correct deliberate vocabulary and factual errors in a business text using knowledge of business entity types and financial reporting concepts.</p></div>
+        <div class="brief-row"><span class="brief-label">Context</span>
+          <p>GFP's Legal and Compliance Department received a draft report from a junior analyst. The text contains 6 vocabulary errors. Your team must find and correct all of them before the report is sent to the client.</p></div>
+      </div>
+
+      <div class="task-block">
+        <h3 class="task-title">Part A. Error detection (6 points)</h3>
+        <p class="task-hint">Read the draft below. Click on any word or phrase you believe is wrong to mark it, then complete the correction table.</p>
+        <div class="case-box">
+          <h4 style="margin-bottom:8px;font-size:15px;">Draft report — business structure analysis</h4>
+          <p class="highlightable">A sole corporation is the simplest form of business. It is easy to establish and gives the owner shared control over all decisions. However, the owner also carries limited liability for all business debts and financial obligations, which means personal assets may be at risk.</p>
+          <p class="highlightable">A limited liability company (LLP) is more complex. It combines flexibility in taxation with limited liability for its members. This structure is popular among small and medium-sized enterprises that want to raise capital without losing operational control.</p>
+          <p class="highlightable">A corporation can raise capital through the issuance of bonds. This allows the company to access a large number of investors. However, corporations often face rigid taxation issues and must comply with complex regulatory requirements and maintain a clear governance structure.</p>
+        </div>
+        <table class="grid">
+          <thead><tr><th class="num">#</th><th>Incorrect term (as written)</th><th>Correct term</th><th>Why is it wrong? (brief note)</th></tr></thead>
+          <tbody>
+            <tr><td class="num">1</td><td><input type="text" data-label="S2 – row1 incorrect term"></td><td><input type="text" data-label="S2 – row1 correct term"></td><td><input type="text" data-label="S2 – row1 note"></td></tr>
+            <tr><td class="num">2</td><td><input type="text" data-label="S2 – row2 incorrect term"></td><td><input type="text" data-label="S2 – row2 correct term"></td><td><input type="text" data-label="S2 – row2 note"></td></tr>
+            <tr><td class="num">3</td><td><input type="text" data-label="S2 – row3 incorrect term"></td><td><input type="text" data-label="S2 – row3 correct term"></td><td><input type="text" data-label="S2 – row3 note"></td></tr>
+            <tr><td class="num">4</td><td><input type="text" data-label="S2 – row4 incorrect term"></td><td><input type="text" data-label="S2 – row4 correct term"></td><td><input type="text" data-label="S2 – row4 note"></td></tr>
+            <tr><td class="num">5</td><td><input type="text" data-label="S2 – row5 incorrect term"></td><td><input type="text" data-label="S2 – row5 correct term"></td><td><input type="text" data-label="S2 – row5 note"></td></tr>
+            <tr><td class="num">6</td><td><input type="text" data-label="S2 – row6 incorrect term"></td><td><input type="text" data-label="S2 – row6 correct term"></td><td><input type="text" data-label="S2 – row6 note"></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="task-block">
+        <h3 class="task-title">Part B. Quick analysis (4 points)</h3>
+        <p><strong>Q1.</strong> Which business structure has the highest administrative costs, and why? Use the term "governance structure" in your answer.</p>
+        <textarea placeholder="Write 1–2 sentences..." data-label="S2 Part B – Q1"></textarea>
+        <p style="margin-top:14px;"><strong>Q2.</strong> Why might inaccurate information in a financial statement lead to poor decisions for investors? Use the terms "reliable data" and "mislead users".</p>
+        <textarea placeholder="Write 1–2 sentences..." data-label="S2 Part B – Q2"></textarea>
+      </div>
+    </section>
+
+    <!-- ================= STATION 3 ================= -->
+    <section id="s3" class="station-panel" style="--accent:var(--s3);">
+      <div class="brief">
+        <div class="brief-row"><span class="brief-label">Objective</span>
+          <p>Demonstrate understanding of vocabulary related to industry exhibitions, strategic intelligence, and fintech trends by completing a professional text.</p></div>
+        <div class="brief-row"><span class="brief-label">Context</span>
+          <p>GFP's Strategy Department is preparing a brief report about the annual FinEx 2025 exhibition. The analyst who drafted the text left 8 gaps. Your team must fill them using the word bank below.</p></div>
+      </div>
+
+      <div class="task-block">
+        <h3 class="task-title">Part A. Gapped text (8 points)</h3>
+        <p class="task-hint">Word bank (12 words, use only 8): actionable insight, competitive landscapes, compliance automation, disruptive technologies, ESG, market entry feasibility, professional development, risk management, emerging economic trends, strategic direction, benchmark, facilitate.</p>
+        <div class="passage" id="s3-passage">
+          <p><strong>FinEx 2025: a strategic overview</strong></p>
+          <p>FinEx 2025 is one of the most significant financial technology exhibitions of the year. It brings together thousands of professionals from across the industry to explore
+          <select class="gap-select s3" data-label="S3 – gap 1"></select> that are reshaping global finance. The event aims to
+          <select class="gap-select s3" data-label="S3 – gap 2"></select> knowledge exchange and collaboration between institutions, regulators, and innovators.</p>
+          <p>Participants can
+          <select class="gap-select s3" data-label="S3 – gap 3"></select> their organisation's performance against leading industry standards and gain
+          <select class="gap-select s3" data-label="S3 – gap 4"></select> that can be applied immediately upon returning to their companies. This makes the exhibition a powerful tool for
+          <select class="gap-select s3" data-label="S3 – gap 5"></select> at all career levels.</p>
+          <p>A key theme at FinEx 2025 is
+          <select class="gap-select s3" data-label="S3 – gap 6"></select>, particularly software that reduces human error in regulatory processes. Another focus area is
+          <select class="gap-select s3" data-label="S3 – gap 7"></select> criteria, as more investment firms adopt sustainable models. The event also includes dedicated panels on
+          <select class="gap-select s3" data-label="S3 – gap 8"></select> for companies planning to expand into new markets.</p>
+        </div>
+        <div class="check-row" style="margin-top:10px;"><button class="btn ghost" onclick="checkStation('s3', this)">Check answers</button><span class="score-readout" id="score-s3"></span></div>
+      </div>
+
+      <div class="task-block">
+        <h3 class="task-title">Part B. Inference questions (2 points)</h3>
+        <p><strong>Q1.</strong> Why would a company send its analysts to an industry exhibition rather than simply reading industry reports? Use at least 2 vocabulary terms from this station.</p>
+        <textarea placeholder="Write your answer..." data-label="S3 Part B – Q1"></textarea>
+        <p style="margin-top:14px;"><strong>Q2.</strong> The text mentions "disruptive technologies". What does this term mean in a financial context? Give one real-world example.</p>
+        <textarea placeholder="Write your answer..." data-label="S3 Part B – Q2"></textarea>
+      </div>
+    </section>
+
+    <!-- ================= STATION 4 ================= -->
+    <section id="s4" class="station-panel" style="--accent:var(--s4);">
+      <div class="brief">
+        <div class="brief-row"><span class="brief-label">Objective</span>
+          <p>Analyse a real business case, identify compliance risks, recommend preventive measures, and make a financially justified decision using safety and compliance vocabulary.</p></div>
+        <div class="brief-row"><span class="brief-label">Context</span>
+          <p>GFP's Risk Advisory Department received a request from ProTech Manufacturing. The company needs an external assessment before a regulatory authority inspection. Your team acts as the advisory team.</p></div>
+      </div>
+
+      <div class="case-box">
+        <h4 style="margin-bottom:8px;font-size:15px;">Case file: ProTech Manufacturing</h4>
+        <p style="font-size:14px;margin:0 0 10px;">ProTech manufactures industrial components for construction companies. Key data from the last 12 months:</p>
+        <ul style="margin:0;padding-left:20px;font-size:14px;">
+          <li>3 workplace safety accidents recorded (2 injured workers, 1 fatality)</li>
+          <li>Total fines paid to regulatory authority: $28,500</li>
+          <li>Primary cause: outdated machinery (avg. age 14 years, last serviced 3 years ago)</li>
+          <li>No formal safety training programme for new staff</li>
+          <li>Insurance premiums increased by 55% following the accident claims</li>
+          <li>One major client has threatened to reconsider partnership due to safety record</li>
+          <li>Legal expenses from the fatality case: $19,000 (ongoing)</li>
+          <li>Option A: invest $95,000 now in new machinery plus a mandatory safety training programme</li>
+          <li>Option B: continue current operations and manage risks reactively</li>
+        </ul>
+      </div>
+
+      <div class="task-block">
+        <h3 class="task-title">Task 1. Risk identification (3 points)</h3>
+        <p class="task-hint">Identify 4 specific risks ProTech faces. Use vocabulary from the box below; write one complete sentence per risk.</p>
+        <div class="wordbank">
+          <span class="chip">operational risk</span><span class="chip">reputational damage</span><span class="chip">legal penalty</span>
+          <span class="chip">production downtime</span><span class="chip">workplace violations</span><span class="chip">safety violations</span>
+          <span class="chip">financial instability</span><span class="chip">non-compliance</span>
+        </div>
+        <textarea placeholder="Risk 1..." data-label="S4 Task1 – risk 1"></textarea><br><br>
+        <textarea placeholder="Risk 2..." data-label="S4 Task1 – risk 2"></textarea><br><br>
+        <textarea placeholder="Risk 3..." data-label="S4 Task1 – risk 3"></textarea><br><br>
+        <textarea placeholder="Risk 4..." data-label="S4 Task1 – risk 4"></textarea>
+      </div>
+
+      <div class="task-block">
+        <h3 class="task-title">Task 2. Preventive measures (3 points)</h3>
+        <p class="task-hint">Recommend 3 specific preventive measures. Each must use at least one term from the box and include a short explanation.</p>
+        <div class="wordbank">
+          <span class="chip">preventive measures</span><span class="chip">comply with safety regulations</span><span class="chip">conduct external audit</span>
+          <span class="chip">risk assessment</span><span class="chip">preventive investment</span><span class="chip">meet safety requirements</span>
+          <span class="chip">reduce operational risks</span>
+        </div>
+        <textarea placeholder="Measure 1..." data-label="S4 Task2 – measure 1"></textarea><br><br>
+        <textarea placeholder="Measure 2..." data-label="S4 Task2 – measure 2"></textarea><br><br>
+        <textarea placeholder="Measure 3..." data-label="S4 Task2 – measure 3"></textarea>
+      </div>
+      <p class="task-hint">Tasks 1 and 2 are open-response: there is no single correct wording, so this station has no automatic check. The teacher reviews vocabulary use and reasoning directly.</p>
+    </section>
+
+    <!-- ================= STATION 5 ================= -->
+    <section id="s5" class="station-panel" style="--accent:var(--s5);">
+      <div class="brief">
+        <div class="brief-row"><span class="brief-label">Objective</span>
+          <p>Demonstrate knowledge of financial reporting terminology and correctly identify which financial statement each data item belongs to.</p></div>
+        <div class="brief-row"><span class="brief-label">Context</span>
+          <p>GFP's Accounting Review Team is training new analysts. You have been asked to complete two training tasks that every junior analyst must pass before working with real client financial statements.</p></div>
+      </div>
+
+      <div class="task-block">
+        <h3 class="task-title">Part A. Term matching (5 points, 10 terms)</h3>
+        <p class="task-hint">Match each term to its definition below.</p>
+        <div class="case-box">
+          <p style="margin:0 0 6px;"><strong>A.</strong> Everything a company owns that has economic value (equipment, cash, property)</p>
+          <p style="margin:0 0 6px;"><strong>B.</strong> A report showing revenues, expenses, and profit over a specific period</p>
+          <p style="margin:0 0 6px;"><strong>C.</strong> The ability to convert assets into cash quickly to meet short-term obligations</p>
+          <p style="margin:0 0 6px;"><strong>D.</strong> Financial obligations or debts that a company owes to external parties</p>
+          <p style="margin:0 0 6px;"><strong>E.</strong> A snapshot of a company's financial position at a specific point in time</p>
+          <p style="margin:0 0 6px;"><strong>F.</strong> The owner's remaining interest in the company after liabilities are subtracted from assets</p>
+          <p style="margin:0 0 6px;"><strong>G.</strong> The principle that financial information must be clear and accessible to all stakeholders</p>
+          <p style="margin:0 0 6px;"><strong>H.</strong> A report tracking all cash entering and leaving the organisation</p>
+          <p style="margin:0 0 6px;"><strong>I.</strong> The state of being unable to determine exact values, which can lead to poor decisions</p>
+          <p style="margin:0;"><strong>J.</strong> A positive result showing that a company is generating revenue above its costs sustainably</p>
+        </div>
+        <table class="grid">
+          <thead><tr><th>Term</th><th style="width:120px">Match</th></tr></thead>
+          <tbody id="s5a-body"></tbody>
+        </table>
+        <div class="check-row"><button class="btn ghost" onclick="checkStation('s5a', this)">Check answers</button><span class="score-readout" id="score-s5a"></span></div>
+      </div>
+
+      <div class="task-block">
+        <h3 class="task-title">Part B. Statement classification (5 points)</h3>
+        <p class="task-hint">For each item, choose the statement it belongs to: Income Statement (IS), Balance Sheet (BS), Cash Flow Statement (CFS), or N/A if it belongs to none of them.</p>
+        <table class="grid">
+          <thead><tr><th class="num">#</th><th>Item</th><th style="width:140px">Statement</th></tr></thead>
+          <tbody id="s5b-body"></tbody>
+        </table>
+        <div class="check-row"><button class="btn ghost" onclick="checkStation('s5b', this)">Check answers</button><span class="score-readout" id="score-s5b"></span></div>
+      </div>
+    </section>
+
+    <!-- ================= STATION 6 ================= -->
+    <section id="s6" class="station-panel" style="--accent:var(--s6);">
+      <div class="brief">
+        <div class="brief-row"><span class="brief-label">Objective</span>
+          <p>Analyse a client's marketing and strategy problems and produce a professional written recommendation memo using target vocabulary.</p></div>
+        <div class="brief-row"><span class="brief-label">Context</span>
+          <p>GFP has been approached by Regional CitiBank, a mid-sized retail bank that has been losing clients. The Marketing Director is asking for an external audit and strategic recommendations. Your team prepares the advisory memo.</p></div>
+      </div>
+
+      <div class="case-box">
+        <h4 style="margin-bottom:8px;font-size:15px;">Client brief: Regional CitiBank</h4>
+        <ul style="margin:0;padding-left:20px;font-size:14px;">
+          <li>Client base declined 21% over 24 months</li>
+          <li>The bank offers identical products to all customer groups (no segmentation)</li>
+          <li>No differentiation from competitors — same rates, no added-value services</li>
+          <li>Customer satisfaction survey: 62% rated communication quality as "poor"</li>
+          <li>The bank launched a mobile app 18 months ago but has not promoted it</li>
+          <li>Competitors are investing heavily in digital banking and personalised offers</li>
+          <li>The bank's strategy was last reviewed in 2020 and has not been updated since</li>
+          <li>Current marketing budget: $40,000/year, 80% spent on printed materials</li>
+        </ul>
+      </div>
+
+      <div class="task-block">
+        <h3 class="task-title">Task 1. Problem diagnosis (4 points)</h3>
+        <p class="task-hint">Identify and explain 2 marketing problems and 1 strategic error, using vocabulary from the box.</p>
+        <div class="wordbank">
+          <span class="chip">market segmentation</span><span class="chip">target segments</span><span class="chip">competitive advantage</span>
+          <span class="chip">market positioning</span><span class="chip">personalized products</span><span class="chip">client needs</span>
+          <span class="chip">inefficient</span><span class="chip">strategic direction</span><span class="chip">communication</span><span class="chip">sustainable growth</span>
+        </div>
+        <textarea placeholder="Marketing problem 1..." data-label="S6 Task1 – problem 1"></textarea><br><br>
+        <textarea placeholder="Marketing problem 2..." data-label="S6 Task1 – problem 2"></textarea><br><br>
+        <textarea placeholder="Strategic error..." data-label="S6 Task1 – strategic error"></textarea>
+      </div>
+
+      <div class="task-block">
+        <h3 class="task-title">Task 2. Advisory memo (6 points)</h3>
+        <p class="task-hint">Write 5–7 sentences to the Marketing Director. Use at least 6 terms from the vocabulary list, include one specific and actionable recommendation, and keep the register professional.</p>
+        <div class="case-box" style="margin-bottom:12px;">
+          <div class="memo-header">
+            <span><strong>MEMORANDUM</strong></span>
+            <span class="field">TO: <span>Marketing Director, Regional CitiBank</span></span>
+            <span class="field">FROM: <span>GFP Advisory Team</span></span>
+            <span class="field">DATE: <input type="text" placeholder="dd.mm.yyyy" data-label="S6 Task2 – memo date"></span>
+          </div>
+          <p style="margin:8px 0 0;font-size:14px;"><strong>RE:</strong> Strategic Marketing Assessment</p>
+        </div>
+        <textarea id="memoBox" style="min-height:140px;" placeholder="Write the memo body here..." oninput="updateMemoTracker()" data-label="S6 Task2 – advisory memo"></textarea>
+        <div class="memo-progress" id="memoProgress">0 of 10 vocabulary terms used (minimum 6 required)</div>
+        <div class="vocab-tick-list" id="vocabTicks"></div>
+      </div>
+
+      <div class="finish-box">
+        <h3>Finish the rotation</h3>
+        <p>Once your team has completed all six stations, download the complete set of results as one file.</p>
+        <button class="download-btn" id="finishBtn" onclick="downloadResults()">Download results</button>
+        <p class="finish-note" id="finishNote" aria-live="polite"></p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  // ---------- theme ----------
+  function setTheme(mode){
+    document.documentElement.setAttribute('data-theme', mode);
+    document.querySelectorAll('.theme-btn').forEach(function(b){
+      b.classList.toggle('active', b.dataset.mode === mode);
+    });
+    try{ localStorage.setItem('gfpq-theme', mode); }catch(e){}
+  }
+  (function(){
+    try{
+      var t = localStorage.getItem('gfpq-theme');
+      if(t === 'light' || t === 'dark'){
+        document.addEventListener('DOMContentLoaded', function(){ setTheme(t); });
+      }
+    }catch(e){}
+  })();
+
+  // ---------- state ----------
+  var currentGroup = null;
+  var offline = false;
+  var locks = {};          // cls -> {verdicts:{label:verdict}, correct, total}
+  var dirty = {};          // label -> true (changed, not yet confirmed by server)
+  var metaDirty = false;   // station checkboxes changed
+  var inflight = null;
+  var saveTimer = null;
+  var labelMap = null;     // label -> element
+
+  var CHECK_GROUPS = [
+    {cls:'s1a', label:'Station 1 Part A — Sector classification'},
+    {cls:'s1b', label:'Station 1 Part B — Sentence completion'},
+    {cls:'s1c', label:'Station 1 Part C — True/False'},
+    {cls:'s3',  label:'Station 3 Part A — Gapped text'},
+    {cls:'s5a', label:'Station 5 Part A — Term matching'},
+    {cls:'s5b', label:'Station 5 Part B — Statement classification'}
+  ];
+  var FLAG_KEY = '_S2_flagged';
+  var FLAG_TEXT = 'S2 – words marked in draft';
+
+  // ---------- helpers ----------
+  var LOOKALIKE = {'A':'А','B':'В','C':'С','E':'Е','H':'Н','K':'К','M':'М','O':'О','P':'Р','T':'Т','X':'Х','Y':'У'};
+  function normalizeGroup(s){
+    s = String(s || '').toUpperCase().replace(/[\s\-_.]+/g, '');
+    return s.replace(/[A-Z]/g, function(ch){ return LOOKALIKE[ch] || ch; });
+  }
+
+  function buildLabelMap(){
+    labelMap = {};
+    document.querySelectorAll('[data-label]').forEach(function(el){ labelMap[el.dataset.label] = el; });
+  }
+  function elOf(label){
+    if(!labelMap) buildLabelMap();
+    return labelMap[label] || null;
+  }
+  function fieldsOfClass(cls){
+    return Array.prototype.slice.call(document.querySelectorAll('select.'+cls+'[data-label], input.'+cls+'[data-label]'));
+  }
+  function getFlagged(){
+    var out = [], words = [];
+    document.querySelectorAll('.highlightable').forEach(function(p, pi){
+      p.querySelectorAll('.word').forEach(function(w, wi){
+        if(w.classList.contains('flagged')){ out.push(pi+'-'+wi); words.push(w.textContent); }
+      });
+    });
+    return {key: out.join(';'), text: words.join(' ')};
+  }
+  function setFlagged(key){
+    var set = {};
+    String(key || '').split(';').forEach(function(x){ if(x) set[x] = true; });
+    document.querySelectorAll('.highlightable').forEach(function(p, pi){
+      p.querySelectorAll('.word').forEach(function(w, wi){
+        w.classList.toggle('flagged', !!set[pi+'-'+wi]);
+      });
+    });
+  }
+  function valueOf(label){
+    if(label === FLAG_KEY) return getFlagged().key;
+    if(label === FLAG_TEXT) return getFlagged().text;
+    var el = elOf(label);
+    if(!el) return '';
+    return el.tagName === 'SELECT' ? el.value : el.value.trim();
+  }
+  function getCompleted(){
+    var out = [];
+    document.querySelectorAll('.tab-done').forEach(function(c){
+      if(c.checked) out.push(parseInt(c.dataset.station, 10));
+    });
+    return out;
+  }
+  function setCompleted(list){
+    var set = {};
+    (list || []).forEach(function(n){ set[n] = true; });
+    document.querySelectorAll('.tab-done').forEach(function(c){
+      c.checked = !!set[parseInt(c.dataset.station, 10)];
+    });
+  }
+  function labelLocked(label){
+    for(var cls in locks){
+      if(locks[cls] && locks[cls].verdicts && Object.prototype.hasOwnProperty.call(locks[cls].verdicts, label)) return true;
+    }
+    return false;
+  }
+
+  // ---------- network ----------
+  function api(path, opts){
+    opts = opts || {};
+    var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    var timer = setTimeout(function(){ if(ctrl) ctrl.abort(); }, 15000);
+    var init = {method: 'GET', headers: {}};
+    if(ctrl) init.signal = ctrl.signal;
+    if(opts.body !== undefined){
+      init.method = 'POST';
+      init.headers['Content-Type'] = 'application/json';
+      init.body = JSON.stringify(opts.body);
+    }
+    return fetch('/api' + path, init).then(function(r){
+      clearTimeout(timer);
+      return r.text().then(function(txt){
+        var data = null;
+        try{ data = txt ? JSON.parse(txt) : {}; }catch(e){}
+        if(!r.ok || data === null){
+          var err = new Error((data && data.error) || ('HTTP ' + r.status));
+          err.status = r.status;
+          err.code = data && data.code;
+          err.data = data;
+          throw err;
+        }
+        return data;
+      });
+    }, function(){
+      clearTimeout(timer);
+      var err = new Error('network');
+      err.network = true;
+      throw err;
+    });
+  }
+
+  // ---------- sync indicator ----------
+  var SYNC_TEXT = {
+    idle: 'Not connected',
+    saved: 'All changes saved',
+    saving: 'Saving…',
+    pending: 'Changes not saved yet',
+    offline: 'No connection · kept on this device',
+    error: 'Server error · retrying'
+  };
+  function setSync(state){
+    var box = document.getElementById('syncStatus');
+    if(!box) return;
+    box.setAttribute('data-state', state);
+    document.getElementById('syncText').textContent = SYNC_TEXT[state] || '';
+  }
+
+  // ---------- local backup ----------
+  function backupKey(){ return 'gfpq:' + currentGroup; }
+  function persistBackup(){
+    if(!currentGroup) return;
+    try{
+      var labels = Object.keys(dirty);
+      if(!labels.length && !metaDirty){ localStorage.removeItem(backupKey()); return; }
+      var fields = {};
+      labels.forEach(function(l){ fields[l] = valueOf(l); });
+      localStorage.setItem(backupKey(), JSON.stringify({
+        fields: fields,
+        completed: metaDirty ? getCompleted() : null
+      }));
+    }catch(e){}
+  }
+  function mergeBackup(){
+    var raw = null;
+    try{ raw = localStorage.getItem(backupKey()); }catch(e){}
+    if(!raw) return;
+    var bk;
+    try{ bk = JSON.parse(raw); }catch(e){ return; }
+    if(!bk) return;
+    Object.keys(bk.fields || {}).forEach(function(label){
+      if(labelLocked(label)) return;
+      if(label === FLAG_KEY){ setFlagged(bk.fields[label]); dirty[label] = true; dirty[FLAG_TEXT] = true; return; }
+      if(label === FLAG_TEXT) return;
+      var el = elOf(label);
+      if(!el) return;
+      el.value = bk.fields[label];
+      dirty[label] = true;
+    });
+    if(bk.completed){ setCompleted(bk.completed); metaDirty = true; updateProgress(); }
+    updateMemoTracker();
+  }
+
+  // ---------- autosave ----------
+  function markDirty(label){
+    if(!currentGroup || !label) return;
+    if(labelLocked(label)) return;
+    dirty[label] = true;
+    persistBackup();
+    setSync(offline ? 'offline' : 'pending');
+    scheduleSave();
+  }
+  function scheduleSave(){
+    if(saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(function(){ saveTimer = null; flushSave(); }, 1200);
+  }
+  function buildPayload(){
+    var fields = {};
+    Object.keys(dirty).forEach(function(l){ fields[l] = valueOf(l); });
+    var p = {group: currentGroup, fields: fields};
+    if(metaDirty) p.completed = getCompleted();
+    return p;
+  }
+  function flushSave(){
+    if(!currentGroup || offline) return Promise.resolve(false);
+    if(saveTimer){ clearTimeout(saveTimer); saveTimer = null; }
+    if(inflight) return inflight.then(function(){ return flushSave(); });
+    var labels = Object.keys(dirty);
+    if(!labels.length && !metaDirty){ setSync('saved'); return Promise.resolve(true); }
+    var payload = buildPayload();
+    var hadMeta = metaDirty;
+    metaDirty = false;
+    setSync('saving');
+    inflight = api('/save', {body: payload}).then(function(res){
+      labels.forEach(function(l){
+        if(valueOf(l) === payload.fields[l]) delete dirty[l];
+      });
+      if(res && res.locks){ locks = res.locks; Object.keys(locks).forEach(applyLock); }
+      if(res && res.rejected){
+        Object.keys(res.rejected).forEach(function(l){
+          var el = elOf(l);
+          if(el) el.value = res.rejected[l];
+          delete dirty[l];
+        });
+      }
+      inflight = null;
+      persistBackup();
+      if(Object.keys(dirty).length || metaDirty){ scheduleSave(); }
+      else setSync('saved');
+      return true;
+    }).catch(function(e){
+      inflight = null;
+      if(hadMeta) metaDirty = true;
+      if(e.network){ setSync('offline'); }
+      else setSync('error');
+      persistBackup();
+      return false;
+    });
+    return inflight;
+  }
+  function tryReconnect(){
+    return api('/state?group=' + encodeURIComponent(currentGroup)).then(function(st){
+      offline = false;
+      if(st && st.locks){ locks = st.locks; Object.keys(locks).forEach(applyLock); }
+      return flushSave();
+    }).catch(function(){ return false; });
+  }
+  setInterval(function(){
+    if(!currentGroup || inflight) return;
+    if(offline){ tryReconnect(); return; }
+    if(Object.keys(dirty).length || metaDirty) flushSave();
+  }, 8000);
+
+  function beaconSave(){
+    if(!currentGroup || offline) return;
+    if(!Object.keys(dirty).length && !metaDirty) return;
+    try{
+      if(navigator.sendBeacon){
+        navigator.sendBeacon('/api/save', new Blob([JSON.stringify(buildPayload())], {type: 'application/json'}));
+      }
+    }catch(e){}
+  }
+  window.addEventListener('pagehide', beaconSave);
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'hidden') beaconSave();
+  });
+
+  // field change tracking (one delegated listener)
+  function onFieldEvent(e){
+    var el = e.target;
+    if(!el || !el.dataset || !el.dataset.label) return;
+    markDirty(el.dataset.label);
+  }
+  document.addEventListener('input', onFieldEvent);
+  document.addEventListener('change', onFieldEvent);
+
+  function onDoneChange(){
+    updateProgress();
+    if(!currentGroup) return;
+    metaDirty = true;
+    persistBackup();
+    setSync(offline ? 'offline' : 'pending');
+    scheduleSave();
+  }
+
+  function toggleWord(span){
+    span.classList.toggle('flagged');
+    markDirty(FLAG_KEY);
+    dirty[FLAG_TEXT] = true;
+  }
+
+  // ---------- applying server state ----------
+  function setValue(el, v){
+    el.value = (v === undefined || v === null) ? '' : v;
+  }
+  function applyState(st){
+    var fields = st.fields || {};
+    locks = st.locks || {};
+    if(!labelMap) buildLabelMap();
+    Object.keys(labelMap).forEach(function(label){
+      if(Object.prototype.hasOwnProperty.call(fields, label)) setValue(labelMap[label], fields[label]);
+    });
+    if(fields[FLAG_KEY] !== undefined) setFlagged(fields[FLAG_KEY]);
+    setCompleted(st.completed || []);
+    Object.keys(locks).forEach(applyLock);
+    updateProgress();
+    updateMemoTracker();
+    if(st.finished_at){
+      document.getElementById('finishNote').textContent =
+        'The final version was saved on the server at ' + new Date(st.finished_at).toLocaleString() + '. You can still download the file again.';
+    }
+  }
+  function applyLock(cls){
+    var lock = locks[cls];
+    if(!lock || !lock.verdicts) return;
+    fieldsOfClass(cls).forEach(function(el){
+      var v = lock.verdicts[el.dataset.label];
+      if(v === undefined) return;
+      el.classList.remove('correct', 'incorrect');
+      el.classList.add(v === 'correct' ? 'correct' : 'incorrect');
+      el.disabled = true;
+    });
+    var readout = document.getElementById('score-' + cls);
+    if(readout) readout.textContent = lock.correct + ' of ' + lock.total + ' correct — locked';
+    var btn = document.querySelector('button[onclick*="checkStation(\'' + cls + '\'"]');
+    if(btn){ btn.disabled = true; btn.textContent = 'Answers locked'; }
+  }
+
+  // ---------- group check-in ----------
+  function showLoginError(msg, showOffline){
+    var err = document.getElementById('loginError');
+    err.textContent = msg;
+    err.style.display = msg ? 'block' : 'none';
+    document.getElementById('offlineBtn').classList.toggle('hidden', !showOffline);
+  }
+  function enterApp(){
+    document.getElementById('teamTagValue').textContent = currentGroup;
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('app').classList.remove('locked');
+    buildLabelMap();
+  }
+  function handleLogin(){
+    var name = normalizeGroup(document.getElementById('loginGroup').value);
+    if(!name){ showLoginError('Please enter your group name.', false); return; }
+    var btn = document.getElementById('loginBtn');
+    btn.disabled = true;
+    var oldText = btn.textContent;
+    btn.textContent = 'Connecting…';
+    showLoginError('', false);
+    api('/state?group=' + encodeURIComponent(name)).then(function(st){
+      currentGroup = st.group || name;
+      offline = false;
+      enterApp();
+      applyState(st);
+      mergeBackup();
+      if(Object.keys(dirty).length || metaDirty){ setSync('pending'); flushSave(); }
+      else setSync('saved');
+    }).catch(function(e){
+      if(e.code === 'unknown_group'){
+        var list = (e.data && e.data.allowed) ? ' Available groups: ' + e.data.allowed.join(', ') + '.' : '';
+        showLoginError('This group name was not recognised.' + list, false);
+      } else if(e.network || e.status >= 500 || (e.status === 404 && !e.code)){
+        showLoginError('The server cannot be reached right now. Check the connection and try again, or continue without connection (answers stay on this device and are sent later).', true);
+      } else {
+        showLoginError(e.message || 'Unexpected error.', false);
+      }
+    }).then(function(){
+      btn.disabled = false;
+      btn.textContent = oldText;
+    });
+  }
+  function continueOffline(){
+    var name = normalizeGroup(document.getElementById('loginGroup').value);
+    if(!name){ showLoginError('Please enter your group name.', false); return; }
+    currentGroup = name;
+    offline = true;
+    enterApp();
+    mergeBackup();
+    setSync('offline');
+  }
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Enter' && e.target && e.target.id === 'loginGroup') handleLogin();
+  });
+
+  // ---------- word banks ----------
+  var s1Bank = ["extraction of raw materials","car production","oil drilling","retail banking services",
+    "food manufacturing","healthcare provision","coal mining","software development",
+    "construction of buildings","agricultural farming","perishable goods processing","transportation services"];
+  var s1bBank = ["capital resources","scarcity of resources","satisfy human wants","human resources",
+    "natural resources","capital goods","provide capital resources"];
+  var s3Bank = ["actionable insight","competitive landscapes","compliance automation","disruptive technologies","ESG",
+    "market entry feasibility","professional development","risk management","emerging economic trends","strategic direction","benchmark","facilitate"];
+  var s5Terms = ["income statement","balance sheet","cash flow statement","assets","liabilities","equity","liquidity","transparency","strong performance","inaccurate information"];
+  var s5Items = ["Revenue from product sales","Total current assets","Net profit for the period","Long-term liabilities",
+    "Cash received from customers","Retained earnings","Cost of goods sold","Payments to suppliers","Share capital","Operating expenses"];
+  var memoVocab = ["market segmentation","target segments","competitive advantage","market positioning",
+    "personalized products","client needs","strategic direction","communication","sustainable growth","inefficient"];
+
+  function fillSelect(sel, bank){
+    sel.innerHTML = '<option value="">— choose —</option>' +
+      bank.map(function(w){return '<option value="'+w.toLowerCase()+'">'+w+'</option>';}).join('');
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    document.getElementById('s1-bank').innerHTML = s1Bank.map(function(w){return '<span class="chip">'+w+'</span>';}).join('');
+    document.getElementById('s1b-bank').innerHTML = s1bBank.map(function(w){return '<span class="chip">'+w+'</span>';}).join('');
+    document.querySelectorAll('select.s1a').forEach(function(s){fillSelect(s, s1Bank);});
+    document.querySelectorAll('select.s1b').forEach(function(s){fillSelect(s, s1bBank);});
+    document.querySelectorAll('select.s3').forEach(function(s){fillSelect(s, s3Bank);});
+
+    var s5aBody = document.getElementById('s5a-body');
+    var letters = ['a','b','c','d','e','f','g','h','i','j'];
+    s5Terms.forEach(function(term, i){
+      var tr = document.createElement('tr');
+      var opts = '<option value="">—</option>' + letters.map(function(l){return '<option value="'+l+'">'+l.toUpperCase()+'</option>';}).join('');
+      tr.innerHTML = '<td>'+(i+1)+'. '+term+'</td><td><select class="s5a" data-label="S5 Part A – '+term+'">'+opts+'</select></td>';
+      s5aBody.appendChild(tr);
+    });
+
+    var s5bBody = document.getElementById('s5b-body');
+    s5Items.forEach(function(item, i){
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td class="num">'+(i+1)+'</td><td>'+item+'</td>' +
+        '<td><select class="s5b" data-label="S5 Part B – '+item+'">' +
+        '<option value="">—</option><option value="is">IS</option><option value="bs">BS</option><option value="cfs">CFS</option><option value="na">N/A</option></select></td>';
+      s5bBody.appendChild(tr);
+    });
+
+    var vt = document.getElementById('vocabTicks');
+    vt.innerHTML = memoVocab.map(function(t){return '<div class="vocab-tick" data-term="'+t.toLowerCase()+'"><span class="dot"></span>'+t+'</div>';}).join('');
+
+    document.querySelectorAll('.highlightable').forEach(function(p){
+      var text = p.textContent;
+      var tokens = text.split(/(\s+)/);
+      p.innerHTML = tokens.map(function(tok){
+        if(tok.trim()==='') return tok;
+        return '<span class="word" onclick="toggleWord(this)">'+tok+'</span>';
+      }).join('');
+    });
+
+    buildLabelMap();
+    showStation(1);
+  });
+
+  // ---------- checking (server-side; locks fields once checked) ----------
+  function checkStation(cls, btn){
+    var readout = document.getElementById('score-' + cls);
+    if(!currentGroup || offline){
+      if(readout) readout.textContent = 'Checking needs a connection to the server. Try again when the connection is back.';
+      if(offline) tryReconnect();
+      return;
+    }
+    var els = fieldsOfClass(cls);
+    var answers = {};
+    els.forEach(function(el){ answers[el.dataset.label] = el.tagName === 'SELECT' ? el.value : el.value.trim(); });
+    var orig = btn ? btn.textContent : '';
+    if(btn){ btn.disabled = true; btn.textContent = 'Checking…'; }
+    api('/check', {body: {group: currentGroup, cls: cls, answers: answers}}).then(function(res){
+      locks[cls] = res.lock;
+      els.forEach(function(el){ delete dirty[el.dataset.label]; });
+      applyLock(cls);
+      persistBackup();
+      if(!Object.keys(dirty).length && !metaDirty) setSync('saved');
+    }).catch(function(e){
+      if(btn){ btn.disabled = false; btn.textContent = orig; }
+      if(readout) readout.textContent = e.network ? 'No connection. Your answers are not locked yet. Try again.' : ('Could not check: ' + (e.message || 'error'));
+    });
+  }
+
+  // ---------- memo vocabulary tracker ----------
+  function updateMemoTracker(){
+    var text = document.getElementById('memoBox').value.toLowerCase();
+    var used = 0;
+    document.querySelectorAll('.vocab-tick').forEach(function(tick){
+      var term = tick.dataset.term;
+      var found = text.indexOf(term) !== -1;
+      tick.classList.toggle('used', found);
+      if(found) used++;
+    });
+    document.getElementById('memoProgress').textContent =
+      used + ' of ' + memoVocab.length + ' vocabulary terms used (minimum 6 required)';
+  }
+
+  // ---------- station navigation ----------
+  var stationTitles = {1:'Economic Activity',2:'Business Entities',3:'Industry Exhibitions',
+    4:'Production &amp; Safety',5:'Financial Reporting',6:'Marketing &amp; Strategy'};
+  var stationMinutes = {1:8,2:8,3:8,4:8,5:8,6:8};
+  var currentStation = 1;
+
+  function showStation(n){
+    document.querySelectorAll('.station-panel').forEach(function(p){p.classList.remove('active');});
+    document.getElementById('s'+n).classList.add('active');
+    document.querySelectorAll('.station-tab').forEach(function(t){t.classList.remove('current');});
+    document.querySelector('.station-tab[data-target="s'+n+'"]').classList.add('current');
+    currentStation = n;
+    document.getElementById('stationEyebrow').textContent = 'Station ' + n;
+    document.getElementById('stationTitle').innerHTML = stationTitles[n];
+    timerReset();
+  }
+
+  // ---------- timer ----------
+  var timerInterval = null;
+  var remaining = stationMinutes[1]*60;
+
+  function renderTimer(){
+    var m = Math.floor(remaining/60), s = remaining%60;
+    var disp = document.getElementById('timerDisplay');
+    disp.textContent = (m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+    disp.classList.toggle('time-up', remaining<=0);
+  }
+  function timerStart(){
+    if(timerInterval) return;
+    timerInterval = setInterval(function(){
+      if(remaining>0){ remaining--; renderTimer(); }
+      else { clearInterval(timerInterval); timerInterval=null; }
+    },1000);
+  }
+  function timerPause(){ clearInterval(timerInterval); timerInterval=null; }
+  function timerReset(){
+    clearInterval(timerInterval); timerInterval=null;
+    remaining = stationMinutes[currentStation]*60;
+    renderTimer();
+  }
+
+  // ---------- progress ----------
+  function updateProgress(){
+    var done = document.querySelectorAll('.tab-done:checked').length;
+    document.getElementById('overallFill').style.width = (done/6*100)+'%';
+    document.getElementById('overallText').textContent = done + ' of 6 stations completed · 48 min total';
+  }
+
+  // ---------- intro overlay ----------
+  function toggleIntro(){
+    document.getElementById('introOverlay').classList.toggle('hidden');
+  }
+
+  // ---------- final file (last station only) ----------
+  function verdictMap(){
+    var m = {};
+    Object.keys(locks).forEach(function(cls){
+      var v = (locks[cls] && locks[cls].verdicts) || {};
+      Object.keys(v).forEach(function(l){ m[l] = v[l]; });
+    });
+    return m;
+  }
+
+  function buildResultsText(confirmed, finishedAt){
+    var now = new Date();
+    var vm = verdictMap();
+    var lines = [];
+    lines.push('GFP ADVISORY PRACTICE — FINAL TEAM RESULTS');
+    lines.push('Group: ' + currentGroup);
+    lines.push('Downloaded: ' + now.toLocaleString());
+    lines.push('Stations marked complete: ' + getCompleted().length + ' of 6');
+    lines.push(confirmed
+      ? 'Saved on server: yes' + (finishedAt ? ' (' + new Date(finishedAt).toLocaleString() + ')' : '')
+      : 'Saved on server: NOT confirmed (no connection at download time; the team should tell the teacher)');
+    lines.push('');
+
+    lines.push('AUTOMATED CHECK SUMMARY');
+    lines.push('(item-level count for the closed-answer tasks only; this is a raw count of items, not');
+    lines.push('converted to the point values printed on each task — please apply your own scoring scale.)');
+    var grand = {correct:0, incorrect:0, blank:0, total:0};
+    CHECK_GROUPS.forEach(function(g){
+      var lock = locks[g.cls];
+      var n = fieldsOfClass(g.cls).length;
+      if(!lock || !lock.verdicts){
+        lines.push('- ' + g.label + ': not checked (' + n + ' items)');
+        return;
+      }
+      var c = 0, i = 0, b = 0;
+      Object.keys(lock.verdicts).forEach(function(l){
+        var v = lock.verdicts[l];
+        if(v === 'correct') c++; else if(v === 'incorrect') i++; else b++;
+      });
+      grand.correct += c; grand.incorrect += i; grand.blank += b; grand.total += (c + i + b);
+      lines.push('- ' + g.label + ': ' + c + ' correct, ' + i + ' incorrect, ' + b + ' not answered (of ' + (c + i + b) + ')');
+    });
+    lines.push('- TOTAL across checked closed-item tasks: ' + grand.correct + ' correct, ' + grand.incorrect +
+      ' incorrect, ' + grand.blank + ' not answered (of ' + grand.total + ')');
+    lines.push('');
+
+    for(var n = 1; n <= 6; n++){
+      var section = document.getElementById('s' + n);
+      lines.push('==================================================');
+      lines.push('STATION ' + n + '. ' + stationTitles[n].replace('&amp;', '&'));
+      lines.push('==================================================');
+      var fields = section.querySelectorAll('[data-label]');
+      if(fields.length === 0 && n !== 2){
+        lines.push('(no recorded fields for this station)');
+      }
+      fields.forEach(function(el){
+        var label = el.dataset.label;
+        var value;
+        if(el.tagName === 'SELECT'){
+          value = el.options[el.selectedIndex] ? el.options[el.selectedIndex].text : '';
+          if(!el.value) value = '(not answered)';
+        } else {
+          value = el.value.trim() || '(not answered)';
+        }
+        var line = '- ' + label + ': ' + value;
+        var v = vm[label];
+        if(v === 'correct') line += ' [CORRECT]';
+        else if(v === 'incorrect' || v === 'blank') line += ' [INCORRECT]';
+        lines.push(line);
+      });
+      if(n === 2){
+        var fl = getFlagged().text;
+        lines.push('- ' + FLAG_TEXT + ': ' + (fl || '(none)'));
+      }
+      lines.push('');
+    }
+    return lines.join('\n');
+  }
+
+  function downloadResults(){
+    if(!currentGroup){
+      alert('Please enter your group name first.');
+      return;
+    }
+    var btn = document.getElementById('finishBtn');
+    var note = document.getElementById('finishNote');
+    btn.disabled = true;
+    note.textContent = 'Saving the final version…';
+    var flushed = false;
+    flushSave().then(function(ok){
+      flushed = ok;
+      if(offline) return null;
+      return api('/finish', {body: {group: currentGroup, completed: getCompleted()}}).catch(function(){ return null; });
+    }).then(function(res){
+      var confirmed = !!(flushed && res);
+      if(res && res.locks){ locks = res.locks; Object.keys(locks).forEach(applyLock); }
+      var finishedAt = res && res.finished_at;
+      var text = buildResultsText(confirmed, finishedAt);
+      var now = new Date();
+      var blob = new Blob(['﻿' + text], {type: 'text/plain;charset=utf-8'});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      var stamp = now.toISOString().slice(0,16).replace(/[:T]/g,'-');
+      var safeGroup = currentGroup.replace(/[^a-zA-Zа-яА-ЯёЁ0-9]+/g,'-');
+      a.href = url;
+      a.download = 'gfp-quest_' + safeGroup + '_' + stamp + '.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      note.textContent = confirmed
+        ? 'Final version saved on the server and downloaded.'
+        : 'The file was downloaded, but the final version is NOT confirmed on the server (no connection). Tell your teacher.';
+      btn.disabled = false;
+    });
+  }
+</script>
+</body>
+</html>

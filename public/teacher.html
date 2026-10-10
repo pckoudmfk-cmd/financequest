@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>GFP Quest · Панель преподавателя</title>
+<style>
+  :root{
+    --bg:#F7FAF8; --surface:#FFFFFF; --card:#FFFFFF; --primary:#1F6F78; --accent:#56B6A3;
+    --text:#1D2939; --muted:#52606D; --border:#DDE7E3; --ok:#1F7A4D; --bad:#B42318; --on-primary:#FFFFFF;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0F1720; --surface:#16212B; --card:#1B2836; --primary:#72D6C9; --accent:#9FE6D6;
+    --text:#F8FAFC; --muted:#B6C2CF; --border:#2A3B4D; --ok:#6EE7A8; --bad:#FF8A80; --on-primary:#0F1720;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"Times New Roman",Times,serif;font-size:17px;line-height:1.45}
+  header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 24px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5}
+  header h1{margin:0;font-size:22px;color:var(--primary);flex:1;min-width:220px}
+  main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:20px}
+  h2{margin:0 0 12px;font-size:20px;color:var(--primary)}
+  h3{margin:18px 0 8px;font-size:17px;color:var(--primary)}
+  button,select,input{font-family:inherit;font-size:16px}
+  button{background:var(--primary);color:var(--on-primary);border:0;border-radius:8px;padding:8px 16px;cursor:pointer}
+  button.ghost{background:transparent;color:var(--primary);border:1px solid var(--primary)}
+  button.danger{background:var(--bad);color:#fff}
+  button:disabled{opacity:.5;cursor:default}
+  input[type=password],input[type=text]{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px}
+  select{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 6px}
+  table{border-collapse:collapse;width:100%}
+  th,td{border:1px solid var(--border);padding:7px 9px;text-align:left;vertical-align:top}
+  th{background:var(--surface);color:var(--primary)}
+  td.num,th.num{text-align:center;white-space:nowrap}
+  .tablewrap{overflow-x:auto}
+  .muted{color:var(--muted)}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .badge{display:inline-block;padding:2px 10px;border-radius:999px;border:1px solid var(--border);font-size:14px}
+  .badge.work{border-color:var(--accent);color:var(--primary)}
+  .badge.done{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+  .v-correct{color:var(--ok);font-weight:bold}
+  .v-incorrect{color:var(--bad);font-weight:bold}
+  details{border:1px solid var(--border);border-radius:10px;padding:8px 14px;margin-bottom:10px;background:var(--surface)}
+  summary{cursor:pointer;color:var(--primary);font-weight:bold}
+  .ans-station{margin:14px 0 4px;font-weight:bold}
+  .ans td:first-child{width:38%;color:var(--muted)}
+  .login{max-width:420px;margin:70px auto}
+  .err{color:var(--bad);margin-top:8px;min-height:1.2em}
+  .place{font-weight:bold;color:var(--primary)}
+  .tot{font-weight:bold}
+  .hidden{display:none}
+  .note{font-size:15px;color:var(--muted)}
+  .saved{font-size:14px;color:var(--ok)}
+  @media (max-width:640px){body{font-size:16px} main{padding:14px 10px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>GFP Advisory Practice · панель преподавателя</h1>
+  <div class="row">
+    <button class="ghost" id="themeBtn" type="button">Светлая / тёмная</button>
+    <button class="ghost hidden" id="logoutBtn" type="button">Выйти</button>
+  </div>
+</header>
+
+<main>
+  <section id="loginBox" class="card login">
+    <h2>Вход</h2>
+    <p class="muted">Введите пароль преподавателя.</p>
+    <div class="row">
+      <input type="password" id="pw" placeholder="Пароль" autocomplete="current-password" style="flex:1">
+      <button id="loginBtn" type="button">Войти</button>
+    </div>
+    <div class="err" id="loginErr"></div>
+  </section>
+
+  <div id="panel" class="hidden">
+    <section class="card">
+      <div class="row" style="justify-content:space-between">
+        <h2 style="margin:0">Обзор групп</h2>
+        <div class="row">
+          <span class="note" id="updated"></span>
+          <button class="ghost" id="refreshBtn" type="button">Обновить</button>
+          <button class="ghost" id="csvSummaryBtn" type="button">CSV: итоги</button>
+          <button class="ghost" id="csvAnswersBtn" type="button">CSV: все ответы</button>
+        </div>
+      </div>
+      <div class="tablewrap" style="margin-top:12px">
+        <table id="overview"></table>
+      </div>
+      <p class="note">«Закрытые задания» показывают сырое число верных пунктов (без перевода в баллы). Баллы жюри вводятся ниже, места считаются по сумме баллов жюри.</p>
+    </section>
+
+    <section class="card">
+      <h2>Баллы жюри</h2>
+      <p class="note">Каждый критерий оценивается от 0 до 2 баллов, максимум 10 баллов за станцию и 60 за квест. Изменения сохраняются сразу.</p>
+      <div id="juryBox"></div>
+    </section>
+
+    <section class="card">
+      <h2>Ответы команд</h2>
+      <div id="answersBox"></div>
+    </section>
+
+    <section class="card">
+      <h2>Очистка данных</h2>
+      <p class="note">Удаляет ответы и баллы жюри. Используйте после репетиции, чтобы убрать тестовые данные. Действие нельзя отменить.</p>
+      <div class="row">
+        <select id="resetGroup"></select>
+        <button class="danger" id="resetOneBtn" type="button">Очистить выбранную группу</button>
+        <button class="danger" id="resetAllBtn" type="button">Очистить все группы</button>
+      </div>
+      <div class="err" id="resetMsg"></div>
+    </section>
+  </div>
+</main>
+
+<script>
+  var CRITERIA = ['Task Completion','Accuracy of Content','Professional Language','Analysis & Justification','Team Collaboration'];
+  var STATION_NAMES = {1:'Economic Activity',2:'Business Entities',3:'Industry Exhibitions',4:'Production & Safety',5:'Financial Reporting',6:'Marketing & Strategy'};
+  var password = '';
+  var data = null;
+  var timer = null;
+  var juryDirty = {};   // group -> true while the teacher is editing, so refresh does not overwrite
+
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+  // ---------- theme ----------
+  function setTheme(m){
+    document.documentElement.setAttribute('data-theme', m);
+    try{ localStorage.setItem('gfpq-theme', m); }catch(e){}
+  }
+  try{ var st = localStorage.getItem('gfpq-theme'); if(st === 'light' || st === 'dark') setTheme(st); }catch(e){}
+  $('themeBtn').onclick = function(){
+    setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  };
+
+  // ---------- network ----------
+  function call(method, body){
+    var init = {method: method, headers: {'x-teacher-password': password}};
+    if(body){ init.headers['Content-Type'] = 'application/json'; init.body = JSON.stringify(body); }
+    return fetch('/api/teacher', init).then(function(r){
+      return r.json().catch(function(){ return {}; }).then(function(j){
+        if(!r.ok){ var e = new Error(j.error || ('HTTP ' + r.status)); e.status = r.status; throw e; }
+        return j;
+      });
+    });
+  }
+
+  function login(){
+    password = $('pw').value;
+    $('loginErr').textContent = '';
+    if(!password){ $('loginErr').textContent = 'Введите пароль.'; return; }
+    load().then(function(){
+      try{ sessionStorage.setItem('gfpq-teacher', password); }catch(e){}
+      $('loginBox').classList.add('hidden');
+      $('panel').classList.remove('hidden');
+      $('logoutBtn').classList.remove('hidden');
+      timer = setInterval(function(){ load().catch(function(){}); }, 20000);
+    }).catch(function(e){
+      $('loginErr').textContent = e.status === 401 ? 'Неверный пароль.' : 'Не удалось подключиться: ' + e.message;
+    });
+  }
+  $('loginBtn').onclick = login;
+  $('pw').addEventListener('keydown', function(e){ if(e.key === 'Enter') login(); });
+  $('logoutBtn').onclick = function(){
+    try{ sessionStorage.removeItem('gfpq-teacher'); }catch(e){}
+    location.reload();
+  };
+  $('refreshBtn').onclick = function(){ load().catch(function(e){ alert(e.message); }); };
+  try{
+    var saved = sessionStorage.getItem('gfpq-teacher');
+    if(saved){ $('pw').value = saved; login(); }
+  }catch(e){}
+
+  function load(){
+    return call('GET').then(function(j){
+      data = j;
+      render();
+      $('updated').textContent = 'Обновлено: ' + new Date().toLocaleTimeString();
+    });
+  }
+
+  // ---------- computations ----------
+  function juryTotals(g){
+    var per = {}, total = 0, any = false;
+    for(var s = 1; s <= 6; s++){
+      var row = (g.jury && (g.jury[s] || g.jury[String(s)])) || {};
+      var sum = 0;
+      for(var c = 1; c <= 5; c++){
+        var v = row['c' + c];
+        if(typeof v === 'number'){ sum += v; any = true; }
+      }
+      per[s] = sum;
+      total += sum;
+    }
+    return {per: per, total: total, any: any};
+  }
+  function places(){
+    var list = data.groups.map(function(g){ return {g: g.group, t: juryTotals(g)}; }).filter(function(x){ return x.t.any; });
+    list.sort(function(a, b){ return b.t.total - a.t.total; });
+    var out = {}, place = 0, prev = null;
+    list.forEach(function(x, i){
+      if(x.t.total !== prev){ place = i + 1; prev = x.t.total; }
+      out[x.g] = place;
+    });
+    return out;
+  }
+  function closedSummary(g){
+    var c = 0, t = 0, checked = 0, n = 0;
+    Object.keys(data.titles).forEach(function(cls){
+      n++;
+      var lk = g.locks[cls];
+      if(lk){ c += lk.correct; t += lk.total; checked++; }
+    });
+    return {correct: c, total: t, checked: checked, groups: n};
+  }
+  function status(g){
+    if(!g.present) return '<span class="badge">не заходили</span>';
+    if(g.finished_at) return '<span class="badge done">завершили</span>';
+    return '<span class="badge work">работают</span>';
+  }
+  function fmt(ts){ return ts ? new Date(ts).toLocaleString() : '—'; }
+
+  // ---------- render ----------
+  function render(){
+    var pl = places();
+    var html = '<tr><th>Группа</th><th>Статус</th><th class="num">Станций отмечено</th><th class="num">Закрытые задания (верно из проверенных)</th><th>Последнее сохранение</th><th class="num">Баллы жюри</th><th class="num">Место</th></tr>';
+    data.groups.forEach(function(g){
+      var cs = closedSummary(g), jt = juryTotals(g);
+      html += '<tr><td><b>' + esc(g.group) + '</b></td><td>' + status(g) + '</td>' +
+        '<td class="num">' + g.completed.length + ' из 6</td>' +
+        '<td class="num">' + (cs.checked ? cs.correct + ' из ' + cs.total + ' (проверено блоков: ' + cs.checked + ' из ' + cs.groups + ')' : '—') + '</td>' +
+        '<td>' + fmt(g.updated_at) + '</td>' +
+        '<td class="num tot">' + (jt.any ? jt.total + ' из 60' : '—') + '</td>' +
+        '<td class="num place">' + (pl[g.group] || '—') + '</td></tr>';
+    });
+    $('overview').innerHTML = html;
+    renderJury();
+    renderAnswers();
+    renderReset();
+  }
+
+  function renderJury(){
+    var box = $('juryBox');
+    // keep user's open edits: only rebuild groups that are not being edited
+    var existing = {};
+    box.querySelectorAll('[data-jury-group]').forEach(function(d){ existing[d.dataset.juryGroup] = d; });
+    data.groups.forEach(function(g, idx){
+      if(existing[g.group] && juryDirty[g.group]) return;
+      var det = existing[g.group];
+      var wasOpen = det ? det.open : idx === 0;
+      var html = '<summary>' + esc(g.group) + ' · <span class="muted">сумма: <span data-total="' + esc(g.group) + '"></span></span></summary>';
+      html += '<div class="tablewrap"><table><tr><th>Критерий</th>';
+      for(var s = 1; s <= 6; s++) html += '<th class="num">Ст. ' + s + '</th>';
+      html += '</tr>';
+      for(var c = 1; c <= 5; c++){
+        html += '<tr><td>' + c + '. ' + esc(CRITERIA[c - 1]) + '</td>';
+        for(var s2 = 1; s2 <= 6; s2++){
+          var row = (g.jury && (g.jury[s2] || g.jury[String(s2)])) || {};
+          var v = row['c' + c];
+          html += '<td class="num"><select data-g="' + esc(g.group) + '" data-s="' + s2 + '" data-c="' + c + '">' +
+            '<option value=""' + (v === undefined ? ' selected' : '') + '>—</option>' +
+            [0, 1, 2].map(function(k){ return '<option value="' + k + '"' + (v === k ? ' selected' : '') + '>' + k + '</option>'; }).join('') +
+            '</select></td>';
+        }
+        html += '</tr>';
+      }
+      html += '<tr><td class="tot">ИТОГО за станцию (макс. 10)</td>';
+      for(var s3 = 1; s3 <= 6; s3++) html += '<td class="num tot" data-st="' + esc(g.group) + '|' + s3 + '"></td>';
+      html += '</tr></table></div><div class="saved" data-saved="' + esc(g.group) + '"></div>';
+      if(!det){
+        det = document.createElement('details');
+        det.dataset.juryGroup = g.group;
+        box.appendChild(det);
+      }
+      det.open = wasOpen;
+      det.innerHTML = html;
+      det.querySelectorAll('select').forEach(function(sel){ sel.addEventListener('change', onJuryChange); });
+      refreshJuryTotals(g.group);
+    });
+  }
+
+  function readJuryFromDom(group){
+    var scores = {};
+    document.querySelectorAll('select[data-g="' + group + '"]').forEach(function(sel){
+      if(sel.value === '') return;
+      var s = sel.dataset.s;
+      scores[s] = scores[s] || {};
+      scores[s]['c' + sel.dataset.c] = parseInt(sel.value, 10);
+    });
+    return scores;
+  }
+  function refreshJuryTotals(group){
+    var scores = readJuryFromDom(group), grand = 0;
+    for(var s = 1; s <= 6; s++){
+      var sum = 0, row = scores[s] || {};
+      for(var c = 1; c <= 5; c++) if(typeof row['c' + c] === 'number') sum += row['c' + c];
+      grand += sum;
+      var cell = document.querySelector('[data-st="' + group + '|' + s + '"]');
+      if(cell) cell.textContent = Object.keys(row).length ? sum : '—';
+    }
+    var t = document.querySelector('[data-total="' + group + '"]');
+    if(t) t.textContent = grand + ' из 60';
+  }
+  var juryTimers = {};
+  function onJuryChange(e){
+    var group = e.target.dataset.g;
+    juryDirty[group] = true;
+    refreshJuryTotals(group);
+    var msg = document.querySelector('[data-saved="' + group + '"]');
+    if(msg){ msg.textContent = 'Сохранение…'; msg.style.color = 'var(--muted)'; }
+    clearTimeout(juryTimers[group]);
+    juryTimers[group] = setTimeout(function(){
+      call('POST', {action: 'jury', group: group, scores: readJuryFromDom(group)}).then(function(){
+        delete juryDirty[group];
+        var g = data.groups.filter(function(x){ return x.group === group; })[0];
+        if(g) g.jury = readJuryFromDom(group);
+        if(msg){ msg.textContent = 'Сохранено'; msg.style.color = 'var(--ok)'; }
+        render();
+      }).catch(function(err){
+        if(msg){ msg.textContent = 'Не удалось сохранить: ' + err.message; msg.style.color = 'var(--bad)'; }
+      });
+    }, 500);
+  }
+
+  function stationOf(label){
+    var m = /^S(\d)/.exec(label);
+    return m ? parseInt(m[1], 10) : 0;
+  }
+  function verdictOf(g, label){
+    for(var cls in g.locks){
+      var v = g.locks[cls].verdicts && g.locks[cls].verdicts[label];
+      if(v) return v;
+    }
+    return null;
+  }
+  function orderedLabels(g){
+    var seen = {}, out = [];
+    data.labels.forEach(function(l){ seen[l] = true; out.push(l); });
+    Object.keys(g.fields).forEach(function(l){ if(!seen[l] && l.charAt(0) !== '_') out.push(l); });
+    return out.filter(function(l){ return l.charAt(0) !== '_' && g.fields[l] !== undefined; });
+  }
+
+  function renderAnswers(){
+    var openState = {};
+    $('answersBox').querySelectorAll('details').forEach(function(d){ openState[d.dataset.g] = d.open; });
+    var html = '';
+    data.groups.forEach(function(g){
+      html += '<details data-g="' + esc(g.group) + '"' + (openState[g.group] ? ' open' : '') + '><summary>' + esc(g.group) + ' ' + status(g) + '</summary>';
+      if(!g.present){ html += '<p class="muted">Группа ещё не заходила.</p></details>'; return; }
+      html += '<p class="note">Последнее сохранение: ' + fmt(g.updated_at) + (g.finished_at ? ' · итог зафиксирован: ' + fmt(g.finished_at) : '') + '</p>';
+      var labels = orderedLabels(g);
+      for(var s = 1; s <= 6; s++){
+        var ls = labels.filter(function(l){ return stationOf(l) === s; });
+        html += '<div class="ans-station">Станция ' + s + '. ' + esc(STATION_NAMES[s]) + (g.completed.indexOf(s) !== -1 ? ' · отмечена как завершённая' : '') + '</div>';
+        if(!ls.length){ html += '<p class="muted">нет ответов</p>'; continue; }
+        html += '<table class="ans">';
+        ls.forEach(function(l){
+          var v = verdictOf(g, l);
+          var mark = v === 'correct' ? ' <span class="v-correct">верно</span>' : (v ? ' <span class="v-incorrect">неверно</span>' : '');
+          html += '<tr><td>' + esc(l) + '</td><td>' + (g.fields[l] ? esc(g.fields[l]).replace(/\n/g, '<br>') : '<span class="muted">(пусто)</span>') + mark + '</td></tr>';
+        });
+        if(s === 2 && g.fields['S2 – words marked in draft']) {
+          html += '<tr><td>S2 – words marked in draft</td><td>' + esc(g.fields['S2 – words marked in draft']) + '</td></tr>';
+        }
+        html += '</table>';
+      }
+      html += '</details>';
+    });
+    $('answersBox').innerHTML = html;
+  }
+
+  function renderReset(){
+    var sel = $('resetGroup'), cur = sel.value;
+    sel.innerHTML = data.groups.map(function(g){ return '<option value="' + esc(g.group) + '">' + esc(g.group) + '</option>'; }).join('');
+    if(cur) sel.value = cur;
+  }
+  function doReset(groups, text){
+    if(!confirm(text)) return;
+    if(prompt('Для подтверждения введите слово ОЧИСТИТЬ') !== 'ОЧИСТИТЬ') return;
+    call('POST', {action: 'reset', groups: groups, confirm: 'RESET'}).then(function(){
+      $('resetMsg').style.color = 'var(--ok)';
+      $('resetMsg').textContent = 'Готово. Данные удалены.';
+      juryDirty = {};
+      $('juryBox').innerHTML = '';
+      return load();
+    }).catch(function(e){
+      $('resetMsg').style.color = 'var(--bad)';
+      $('resetMsg').textContent = 'Ошибка: ' + e.message;
+    });
+  }
+  $('resetOneBtn').onclick = function(){
+    var g = $('resetGroup').value;
+    doReset([g], 'Удалить ответы и баллы жюри группы ' + g + '?');
+  };
+  $('resetAllBtn').onclick = function(){
+    doReset('all', 'Удалить ответы и баллы жюри ВСЕХ групп?');
+  };
+
+  // ---------- CSV ----------
+  function csvCell(v){
+    var s = String(v == null ? '' : v);
+    if(/[";\n\r]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+  function download(name, rows){
+    var text = '﻿' + rows.map(function(r){ return r.map(csvCell).join(';'); }).join('\r\n');
+    var url = URL.createObjectURL(new Blob([text], {type: 'text/csv;charset=utf-8'}));
+    var a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+  $('csvSummaryBtn').onclick = function(){
+    if(!data) return;
+    var pl = places();
+    var head = ['Группа', 'Статус', 'Станций отмечено', 'Сохранено на сервере'];
+    Object.keys(data.titles).forEach(function(cls){ head.push(data.titles[cls] + ' (верно)'); head.push(data.titles[cls] + ' (всего)'); });
+    for(var s = 1; s <= 6; s++) head.push('Жюри, станция ' + s);
+    head.push('Жюри, всего', 'Место');
+    var rows = [head];
+    data.groups.forEach(function(g){
+      var jt = juryTotals(g);
+      var r = [g.group, !g.present ? 'не заходили' : (g.finished_at ? 'завершили' : 'работают'), g.completed.length, g.updated_at || ''];
+      Object.keys(data.titles).forEach(function(cls){
+        var lk = g.locks[cls];
+        r.push(lk ? lk.correct : ''); r.push(lk ? lk.total : '');
+      });
+      for(var s = 1; s <= 6; s++) r.push(jt.any ? jt.per[s] : '');
+      r.push(jt.any ? jt.total : '', pl[g.group] || '');
+      rows.push(r);
+    });
+    download('gfp-quest_itogi.csv', rows);
+  };
+  $('csvAnswersBtn').onclick = function(){
+    if(!data) return;
+    var rows = [['Группа', 'Станция', 'Поле', 'Ответ', 'Проверка']];
+    data.groups.forEach(function(g){
+      orderedLabels(g).forEach(function(l){
+        var v = verdictOf(g, l);
+        rows.push([g.group, stationOf(l), l, g.fields[l], v === 'correct' ? 'верно' : (v ? 'неверно' : '')]);
+      });
+    });
+    download('gfp-quest_otvety.csv', rows);
+  };
+</script>
+</body>
+</html>
