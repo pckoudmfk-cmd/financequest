@@ -89,12 +89,12 @@
       <div class="tablewrap" style="margin-top:12px">
         <table id="overview"></table>
       </div>
-      <p class="note">«Закрытые задания» показывают сырое число верных пунктов (без перевода в баллы). Баллы жюри вводятся ниже, места считаются по сумме баллов жюри.</p>
+      <p class="note">«Закрытые задания» показывают сырое число верных пунктов (без перевода в баллы). Баллы жюри вводятся на странице /jury, места считаются по среднему баллу жюри.</p>
     </section>
 
     <section class="card">
-      <h2>Баллы жюри</h2>
-      <p class="note">Каждый критерий оценивается от 0 до 2 баллов, максимум 10 баллов за станцию и 60 за квест. Изменения сохраняются сразу.</p>
+      <h2>Баллы жюри (только просмотр)</h2>
+      <p class="note">Члены жюри вносят баллы на странице <b>/jury</b> со своими паролями. Каждый критерий оценивается от 0 до 2 баллов, максимум 10 за станцию и 60 за квест. Итог группы считается как среднее по членам жюри, места определяются по этому среднему.</p>
       <div id="juryBox"></div>
     </section>
 
@@ -122,7 +122,6 @@
   var password = '';
   var data = null;
   var timer = null;
-  var juryDirty = {};   // group -> true while the teacher is editing, so refresh does not overwrite
 
   function $(id){ return document.getElementById(id); }
   function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
@@ -184,20 +183,27 @@
   }
 
   // ---------- computations ----------
-  function juryTotals(g){
-    var per = {}, total = 0, any = false;
-    for(var s = 1; s <= 6; s++){
-      var row = (g.jury && (g.jury[s] || g.jury[String(s)])) || {};
-      var sum = 0;
-      for(var c = 1; c <= 5; c++){
-        var v = row['c' + c];
-        if(typeof v === 'number'){ sum += v; any = true; }
-      }
-      per[s] = sum;
-      total += sum;
+  function stationSum(scores, s){
+    var row = (scores && (scores[s] || scores[String(s)])) || {}, sum = 0, any = false;
+    for(var c = 1; c <= 5; c++){
+      var v = row['c' + c];
+      if(typeof v === 'number'){ sum += v; any = true; }
     }
-    return {per: per, total: total, any: any};
+    return any ? sum : null;
   }
+  // Average over jurors: for each station the mean of station sums of jurors who scored it; total = sum of station means.
+  function juryTotals(g){
+    var per = {}, total = 0, any = false, names = Object.keys(g.jury || {});
+    for(var s = 1; s <= 6; s++){
+      var vals = [];
+      names.forEach(function(n){ var x = stationSum(g.jury[n], s); if(x !== null) vals.push(x); });
+      per[s] = vals.length ? vals.reduce(function(a, b){ return a + b; }, 0) / vals.length : 0;
+      if(vals.length) any = true;
+      total += per[s];
+    }
+    return {per: per, total: total, any: any, jurors: names.length};
+  }
+  function num1(x){ return (Math.round(x * 10) / 10).toString().replace('.', ','); }
   function places(){
     var list = data.groups.map(function(g){ return {g: g.group, t: juryTotals(g)}; }).filter(function(x){ return x.t.any; });
     list.sort(function(a, b){ return b.t.total - a.t.total; });
@@ -234,7 +240,7 @@
         '<td class="num">' + g.completed.length + ' из 6</td>' +
         '<td class="num">' + (cs.checked ? cs.correct + ' из ' + cs.total + ' (проверено блоков: ' + cs.checked + ' из ' + cs.groups + ')' : '—') + '</td>' +
         '<td>' + fmt(g.updated_at) + '</td>' +
-        '<td class="num tot">' + (jt.any ? jt.total + ' из 60' : '—') + '</td>' +
+        '<td class="num tot">' + (jt.any ? num1(jt.total) + ' из 60 (жюри ' + jt.jurors + ')' : '—') + '</td>' +
         '<td class="num place">' + (pl[g.group] || '—') + '</td></tr>';
     });
     $('overview').innerHTML = html;
@@ -245,85 +251,31 @@
 
   function renderJury(){
     var box = $('juryBox');
-    // keep user's open edits: only rebuild groups that are not being edited
-    var existing = {};
-    box.querySelectorAll('[data-jury-group]').forEach(function(d){ existing[d.dataset.juryGroup] = d; });
+    var open = {};
+    box.querySelectorAll('details').forEach(function(d){ open[d.dataset.g] = d.open; });
+    var html = '';
     data.groups.forEach(function(g, idx){
-      if(existing[g.group] && juryDirty[g.group]) return;
-      var det = existing[g.group];
-      var wasOpen = det ? det.open : idx === 0;
-      var html = '<summary>' + esc(g.group) + ' · <span class="muted">сумма: <span data-total="' + esc(g.group) + '"></span></span></summary>';
-      html += '<div class="tablewrap"><table><tr><th>Критерий</th>';
+      var jt = juryTotals(g), names = Object.keys(g.jury || {}).sort();
+      html += '<details data-g="' + esc(g.group) + '"' + (open[g.group] ? ' open' : '') + '><summary>' + esc(g.group) + ' · <span class="muted">среднее ' + (jt.any ? num1(jt.total) + ' из 60' : '—') + '</span></summary>';
+      if(!names.length){ html += '<p class="muted">Баллов жюри пока нет.</p></details>'; return; }
+      html += '<div class="tablewrap"><table><tr><th>Член жюри</th>';
       for(var s = 1; s <= 6; s++) html += '<th class="num">Ст. ' + s + '</th>';
-      html += '</tr>';
-      for(var c = 1; c <= 5; c++){
-        html += '<tr><td>' + c + '. ' + esc(CRITERIA[c - 1]) + '</td>';
+      html += '<th class="num">Сумма</th></tr>';
+      names.forEach(function(n){
+        var tot = 0;
+        html += '<tr><td>' + esc(n) + '</td>';
         for(var s2 = 1; s2 <= 6; s2++){
-          var row = (g.jury && (g.jury[s2] || g.jury[String(s2)])) || {};
-          var v = row['c' + c];
-          html += '<td class="num"><select data-g="' + esc(g.group) + '" data-s="' + s2 + '" data-c="' + c + '">' +
-            '<option value=""' + (v === undefined ? ' selected' : '') + '>—</option>' +
-            [0, 1, 2].map(function(k){ return '<option value="' + k + '"' + (v === k ? ' selected' : '') + '>' + k + '</option>'; }).join('') +
-            '</select></td>';
+          var x = stationSum(g.jury[n], s2);
+          if(x !== null) tot += x;
+          html += '<td class="num">' + (x === null ? '—' : x) + '</td>';
         }
-        html += '</tr>';
-      }
-      html += '<tr><td class="tot">ИТОГО за станцию (макс. 10)</td>';
-      for(var s3 = 1; s3 <= 6; s3++) html += '<td class="num tot" data-st="' + esc(g.group) + '|' + s3 + '"></td>';
-      html += '</tr></table></div><div class="saved" data-saved="' + esc(g.group) + '"></div>';
-      if(!det){
-        det = document.createElement('details');
-        det.dataset.juryGroup = g.group;
-        box.appendChild(det);
-      }
-      det.open = wasOpen;
-      det.innerHTML = html;
-      det.querySelectorAll('select').forEach(function(sel){ sel.addEventListener('change', onJuryChange); });
-      refreshJuryTotals(g.group);
-    });
-  }
-
-  function readJuryFromDom(group){
-    var scores = {};
-    document.querySelectorAll('select[data-g="' + group + '"]').forEach(function(sel){
-      if(sel.value === '') return;
-      var s = sel.dataset.s;
-      scores[s] = scores[s] || {};
-      scores[s]['c' + sel.dataset.c] = parseInt(sel.value, 10);
-    });
-    return scores;
-  }
-  function refreshJuryTotals(group){
-    var scores = readJuryFromDom(group), grand = 0;
-    for(var s = 1; s <= 6; s++){
-      var sum = 0, row = scores[s] || {};
-      for(var c = 1; c <= 5; c++) if(typeof row['c' + c] === 'number') sum += row['c' + c];
-      grand += sum;
-      var cell = document.querySelector('[data-st="' + group + '|' + s + '"]');
-      if(cell) cell.textContent = Object.keys(row).length ? sum : '—';
-    }
-    var t = document.querySelector('[data-total="' + group + '"]');
-    if(t) t.textContent = grand + ' из 60';
-  }
-  var juryTimers = {};
-  function onJuryChange(e){
-    var group = e.target.dataset.g;
-    juryDirty[group] = true;
-    refreshJuryTotals(group);
-    var msg = document.querySelector('[data-saved="' + group + '"]');
-    if(msg){ msg.textContent = 'Сохранение…'; msg.style.color = 'var(--muted)'; }
-    clearTimeout(juryTimers[group]);
-    juryTimers[group] = setTimeout(function(){
-      call('POST', {action: 'jury', group: group, scores: readJuryFromDom(group)}).then(function(){
-        delete juryDirty[group];
-        var g = data.groups.filter(function(x){ return x.group === group; })[0];
-        if(g) g.jury = readJuryFromDom(group);
-        if(msg){ msg.textContent = 'Сохранено'; msg.style.color = 'var(--ok)'; }
-        render();
-      }).catch(function(err){
-        if(msg){ msg.textContent = 'Не удалось сохранить: ' + err.message; msg.style.color = 'var(--bad)'; }
+        html += '<td class="num tot">' + tot + '</td></tr>';
       });
-    }, 500);
+      html += '<tr><td class="tot">Среднее по жюри</td>';
+      for(var s3 = 1; s3 <= 6; s3++) html += '<td class="num tot">' + num1(jt.per[s3]) + '</td>';
+      html += '<td class="num tot">' + num1(jt.total) + '</td></tr></table></div></details>';
+    });
+    box.innerHTML = html;
   }
 
   function stationOf(label){
@@ -384,7 +336,6 @@
     call('POST', {action: 'reset', groups: groups, confirm: 'RESET'}).then(function(){
       $('resetMsg').style.color = 'var(--ok)';
       $('resetMsg').textContent = 'Готово. Данные удалены.';
-      juryDirty = {};
       $('juryBox').innerHTML = '';
       return load();
     }).catch(function(e){
@@ -420,7 +371,7 @@
     var head = ['Группа', 'Статус', 'Станций отмечено', 'Сохранено на сервере'];
     Object.keys(data.titles).forEach(function(cls){ head.push(data.titles[cls] + ' (верно)'); head.push(data.titles[cls] + ' (всего)'); });
     for(var s = 1; s <= 6; s++) head.push('Жюри, станция ' + s);
-    head.push('Жюри, всего', 'Место');
+    head.push('Жюри, среднее всего', 'Место');
     var rows = [head];
     data.groups.forEach(function(g){
       var jt = juryTotals(g);
@@ -429,8 +380,8 @@
         var lk = g.locks[cls];
         r.push(lk ? lk.correct : ''); r.push(lk ? lk.total : '');
       });
-      for(var s = 1; s <= 6; s++) r.push(jt.any ? jt.per[s] : '');
-      r.push(jt.any ? jt.total : '', pl[g.group] || '');
+      for(var s = 1; s <= 6; s++) r.push(jt.any ? num1(jt.per[s]) : '');
+      r.push(jt.any ? num1(jt.total) : '', pl[g.group] || '');
       rows.push(r);
     });
     download('gfp-quest_itogi.csv', rows);

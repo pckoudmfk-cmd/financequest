@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>GFP Quest · Жюри</title>
+<style>
+  :root{
+    --bg:#F7FAF8; --surface:#FFFFFF; --card:#FFFFFF; --primary:#1F6F78; --accent:#56B6A3;
+    --text:#1D2939; --muted:#52606D; --border:#DDE7E3; --ok:#1F7A4D; --bad:#B42318; --on-primary:#FFFFFF;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0F1720; --surface:#16212B; --card:#1B2836; --primary:#72D6C9; --accent:#9FE6D6;
+    --text:#F8FAFC; --muted:#B6C2CF; --border:#2A3B4D; --ok:#6EE7A8; --bad:#FF8A80; --on-primary:#0F1720;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"Times New Roman",Times,serif;font-size:18px;line-height:1.4}
+  header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5}
+  header h1{margin:0;font-size:20px;color:var(--primary);flex:1;min-width:150px}
+  main{max-width:760px;margin:0 auto;padding:16px 14px 60px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px}
+  h2{margin:0 0 10px;font-size:19px;color:var(--primary)}
+  button,select,input{font-family:inherit;font-size:17px}
+  button{background:var(--primary);color:var(--on-primary);border:0;border-radius:8px;padding:9px 16px;cursor:pointer}
+  button.ghost{background:transparent;color:var(--primary);border:1px solid var(--primary)}
+  input[type=password]{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 12px;width:100%}
+  select{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 8px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .muted{color:var(--muted)} .note{font-size:15px;color:var(--muted)}
+  .hidden{display:none}
+  .err{color:var(--bad);min-height:1.2em;margin-top:8px}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .tabs button{background:transparent;color:var(--primary);border:1px solid var(--primary)}
+  .tabs button.on{background:var(--primary);color:var(--on-primary)}
+  .crit{display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center;padding:10px 0;border-top:1px solid var(--border)}
+  .crit:first-of-type{border-top:0}
+  .hint{grid-column:1 / -1;font-size:15px;color:var(--muted)}
+  .hint button{padding:3px 10px;font-size:15px;margin-right:6px}
+  .total{font-weight:bold;color:var(--primary);margin-top:6px}
+  details{margin-top:10px}
+  summary{cursor:pointer;color:var(--primary)}
+  table.ans{border-collapse:collapse;width:100%;margin-top:6px;font-size:15px}
+  table.ans td{border:1px solid var(--border);padding:5px 7px;vertical-align:top}
+  table.ans td:first-child{width:40%;color:var(--muted)}
+  .v-correct{color:var(--ok);font-weight:bold} .v-incorrect{color:var(--bad);font-weight:bold}
+  .saved{font-size:15px;min-height:1.2em}
+</style>
+</head>
+<body>
+<header>
+  <h1>GFP Advisory Practice · жюри</h1>
+  <div class="row">
+    <span class="muted" id="who"></span>
+    <button class="ghost" id="themeBtn" type="button">Тема</button>
+  </div>
+</header>
+<main>
+  <section id="loginBox" class="card" style="margin-top:40px">
+    <h2>Вход для жюри</h2>
+    <p class="muted">Введите свой личный пароль.</p>
+    <input type="password" id="pw" placeholder="Пароль" autocomplete="current-password">
+    <div class="row" style="margin-top:10px"><button id="loginBtn" type="button">Войти</button></div>
+    <div class="err" id="loginErr"></div>
+  </section>
+
+  <div id="panel" class="hidden">
+    <div class="note">Оцените каждый критерий от 0 до 2 баллов. Серая подсказка рассчитана системой по данным команды. Вы можете принять её или выбрать своё значение. Оценки сохраняются сразу, и видны только вам и преподавателю.</div>
+    <h2 style="margin-top:14px">Группа</h2>
+    <div class="tabs" id="groupTabs"></div>
+    <h2>Станция</h2>
+    <div class="tabs" id="stationTabs"></div>
+    <div id="stationBox"></div>
+  </div>
+</main>
+
+<script>
+  var CRITERIA = ['Task Completion','Accuracy of Content','Professional Language','Analysis & Justification','Team Collaboration'];
+  var STATION_NAMES = {1:'Economic Activity',2:'Business Entities',3:'Industry Exhibitions',4:'Production & Safety',5:'Financial Reporting',6:'Marketing & Strategy'};
+  var password = '', data = null, curGroup = null, curStation = 1;
+  var scores = {};            // group -> {station -> {cN: value}}
+  var timers = {};
+
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+  function setTheme(m){ document.documentElement.setAttribute('data-theme', m); try{ localStorage.setItem('gfpq-theme', m); }catch(e){} }
+  try{ var t = localStorage.getItem('gfpq-theme'); if(t === 'light' || t === 'dark') setTheme(t); }catch(e){}
+  $('themeBtn').onclick = function(){ setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); };
+
+  function call(method, body){
+    var init = {method: method, headers: {'x-jury-password': password}};
+    if(body){ init.headers['Content-Type'] = 'application/json'; init.body = JSON.stringify(body); }
+    return fetch('/api/jury', init).then(function(r){
+      return r.json().catch(function(){ return {}; }).then(function(j){
+        if(!r.ok){ var e = new Error(j.error || ('HTTP ' + r.status)); e.status = r.status; throw e; }
+        return j;
+      });
+    });
+  }
+
+  function login(){
+    password = $('pw').value;
+    $('loginErr').textContent = '';
+    if(!password){ $('loginErr').textContent = 'Введите пароль.'; return; }
+    call('GET').then(function(j){
+      try{ sessionStorage.setItem('gfpq-jury', password); }catch(e){}
+      data = j;
+      j.groups.forEach(function(g){ scores[g.group] = JSON.parse(JSON.stringify(g.mine || {})); });
+      curGroup = j.groups[0] && j.groups[0].group;
+      $('who').textContent = j.juror;
+      $('loginBox').classList.add('hidden');
+      $('panel').classList.remove('hidden');
+      render();
+      setInterval(refresh, 30000);
+    }).catch(function(e){
+      $('loginErr').textContent = e.status === 401 ? 'Неверный пароль.' : 'Не удалось подключиться: ' + e.message;
+    });
+  }
+  $('loginBtn').onclick = login;
+  $('pw').addEventListener('keydown', function(e){ if(e.key === 'Enter') login(); });
+  try{ var sp = sessionStorage.getItem('gfpq-jury'); if(sp){ $('pw').value = sp; login(); } }catch(e){}
+
+  // refresh hints and answers without touching the juror's own unsaved choices
+  function refresh(){
+    call('GET').then(function(j){
+      j.groups.forEach(function(g){
+        var cur = data.groups.filter(function(x){ return x.group === g.group; })[0];
+        if(cur){ cur.fields = g.fields; cur.locks = g.locks; cur.hints = g.hints; cur.present = g.present; }
+      });
+      renderStation();
+    }).catch(function(){});
+  }
+
+  function render(){
+    $('groupTabs').innerHTML = data.groups.map(function(g){
+      return '<button type="button" data-g="' + esc(g.group) + '" class="' + (g.group === curGroup ? 'on' : '') + '">' + esc(g.group) + '</button>';
+    }).join('');
+    $('stationTabs').innerHTML = [1,2,3,4,5,6].map(function(s){
+      return '<button type="button" data-s="' + s + '" class="' + (s === curStation ? 'on' : '') + '">' + s + '</button>';
+    }).join('');
+    $('groupTabs').querySelectorAll('button').forEach(function(b){ b.onclick = function(){ curGroup = b.dataset.g; render(); }; });
+    $('stationTabs').querySelectorAll('button').forEach(function(b){ b.onclick = function(){ curStation = parseInt(b.dataset.s, 10); render(); }; });
+    renderStation();
+  }
+
+  function stationOf(label){ var m = /^S(\d)/.exec(label); return m ? parseInt(m[1], 10) : 0; }
+
+  function renderStation(){
+    var g = data.groups.filter(function(x){ return x.group === curGroup; })[0];
+    if(!g){ $('stationBox').innerHTML = ''; return; }
+    var s = curStation;
+    var mine = (scores[g.group] && (scores[g.group][s] || scores[g.group][String(s)])) || {};
+    var hints = (g.hints && (g.hints[s] || g.hints[String(s)])) || {};
+    var html = '<div class="card"><h2>' + esc(g.group) + ' · станция ' + s + '. ' + esc(STATION_NAMES[s]) + '</h2>';
+    if(!g.present) html += '<p class="note">Эта группа ещё не заходила в квест.</p>';
+    for(var c = 1; c <= 5; c++){
+      var v = mine['c' + c], h = hints['c' + c];
+      html += '<div class="crit"><div>' + c + '. ' + esc(CRITERIA[c - 1]) + '</div>' +
+        '<select data-c="' + c + '"><option value="">—</option>' +
+        [0,1,2].map(function(k){ return '<option value="' + k + '"' + (v === k ? ' selected' : '') + '>' + k + '</option>'; }).join('') + '</select>';
+      if(h) html += '<div class="hint">Подсказка системы ' + h.value + ' · ' + esc(h.why) + ' <button type="button" class="ghost" data-apply="' + c + '" data-val="' + h.value + '">принять ' + h.value + '</button></div>';
+      html += '</div>';
+    }
+    html += '<div class="total" id="stTotal"></div><div class="saved" id="savedMsg"></div></div>';
+
+    // answers of this team for the station (read only)
+    var labels = Object.keys(g.fields).filter(function(l){ return l.charAt(0) !== '_' && stationOf(l) === s; });
+    var verd = {};
+    Object.keys(g.locks || {}).forEach(function(cls){ var vv = g.locks[cls].verdicts || {}; Object.keys(vv).forEach(function(l){ verd[l] = vv[l]; }); });
+    html += '<details><summary>Ответы команды на этой станции (' + labels.length + ')</summary>';
+    if(labels.length){
+      html += '<table class="ans">' + labels.map(function(l){
+        var vd = verd[l];
+        var mark = vd === 'correct' ? ' <span class="v-correct">верно</span>' : (vd === 'incorrect' ? ' <span class="v-incorrect">неверно</span>' : (vd === 'blank' ? ' <span class="muted">нет ответа</span>' : ''));
+        return '<tr><td>' + esc(l) + '</td><td>' + (g.fields[l] ? esc(g.fields[l]).replace(/\n/g, '<br>') : '<span class="muted">(пусто)</span>') + mark + '</td></tr>';
+      }).join('') + '</table>';
+    } else html += '<p class="note">Пока нет ответов.</p>';
+    html += '</details>';
+
+    $('stationBox').innerHTML = html;
+    $('stationBox').querySelectorAll('select').forEach(function(sel){ sel.onchange = function(){ setScore(g.group, s, sel.dataset.c, sel.value); }; });
+    $('stationBox').querySelectorAll('button[data-apply]').forEach(function(b){
+      b.onclick = function(){
+        var sel = $('stationBox').querySelector('select[data-c="' + b.dataset.apply + '"]');
+        sel.value = b.dataset.val;
+        setScore(g.group, s, b.dataset.apply, b.dataset.val);
+      };
+    });
+    updateTotal(g.group, s);
+  }
+
+  function setScore(group, s, c, val){
+    scores[group] = scores[group] || {};
+    scores[group][s] = scores[group][s] || {};
+    if(val === '') delete scores[group][s]['c' + c]; else scores[group][s]['c' + c] = parseInt(val, 10);
+    updateTotal(group, s);
+    var msg = $('savedMsg');
+    if(msg){ msg.textContent = 'Сохранение…'; msg.style.color = 'var(--muted)'; }
+    clearTimeout(timers[group]);
+    timers[group] = setTimeout(function(){
+      call('POST', {group: group, scores: scores[group]}).then(function(){
+        var m2 = $('savedMsg');
+        if(m2){ m2.textContent = 'Сохранено'; m2.style.color = 'var(--ok)'; }
+      }).catch(function(e){
+        var m2 = $('savedMsg');
+        if(m2){ m2.textContent = 'Не удалось сохранить. Проверьте связь, оценка будет отправлена при следующем изменении. ' + e.message; m2.style.color = 'var(--bad)'; }
+      });
+    }, 400);
+  }
+  function updateTotal(group, s){
+    var row = (scores[group] && scores[group][s]) || {}, sum = 0, n = 0;
+    for(var c = 1; c <= 5; c++) if(typeof row['c' + c] === 'number'){ sum += row['c' + c]; n++; }
+    var grand = 0;
+    for(var k = 1; k <= 6; k++){
+      var r = (scores[group] && scores[group][k]) || {};
+      for(var c2 = 1; c2 <= 5; c2++) if(typeof r['c' + c2] === 'number') grand += r['c' + c2];
+    }
+    var el = $('stTotal');
+    if(el) el.textContent = 'Сумма за станцию ' + sum + ' из 10 (оценено критериев ' + n + ' из 5). Ваша сумма по группе ' + grand + ' из 60.';
+  }
+</script>
+</body>
+</html>

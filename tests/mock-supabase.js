@@ -2,10 +2,11 @@
 const http = require('http');
 
 function start(port) {
-  const tables = { quest_results: new Map(), quest_jury: new Map() };
+  const tables = { quest_results: new Map(), quest_jury: new Map(), quest_jury_scores: new Map() };
   const defaults = {
     quest_results: () => ({ fields: {}, locks: {}, completed: [], finished_at: null, started_at: new Date().toISOString(), updated_at: new Date().toISOString(), rev: 0 }),
     quest_jury: () => ({ scores: {}, updated_at: new Date().toISOString() }),
+    quest_jury_scores: () => ({ scores: {}, updated_at: new Date().toISOString() }),
   };
   const log = [];
   const server = http.createServer((req, res) => {
@@ -32,11 +33,12 @@ function start(port) {
       if (req.method === 'POST') {
         const onConflict = u.searchParams.get('on_conflict');
         const rec = Object.assign(defaults[name](), body);
-        const exists = t.has(rec.group_name);
+        const key = name === 'quest_jury_scores' ? rec.group_name + '\u0000' + rec.juror : rec.group_name;
+        const exists = t.has(key);
         if (exists && prefer.includes('ignore-duplicates')) return send(prefer.includes('return=minimal') ? 201 : 200, prefer.includes('return=representation') ? [] : undefined);
         if (exists && !(onConflict && prefer.includes('merge-duplicates'))) return send(409, { code: '23505', message: 'duplicate' });
-        const merged = exists ? Object.assign({}, t.get(rec.group_name), body) : rec;
-        t.set(rec.group_name, merged);
+        const merged = exists ? Object.assign({}, t.get(key), body) : rec;
+        t.set(key, merged);
         return send(201, prefer.includes('return=representation') ? [merged] : undefined);
       }
       if (req.method === 'PATCH') {

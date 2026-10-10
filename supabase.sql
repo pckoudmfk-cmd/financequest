@@ -25,3 +25,15 @@ alter table public.quest_jury    enable row level security;
 
 revoke all on public.quest_results from anon, authenticated;
 revoke all on public.quest_jury    from anon, authenticated;
+
+-- Jury scores, one row per group and juror (added for several jurors).
+create table if not exists public.quest_jury_scores (
+  group_name  text        not null,
+  juror       text        not null,
+  scores      jsonb       not null default '{}'::jsonb,
+  updated_at  timestamptz not null default now(),
+  primary key (group_name, juror)
+);
+
+alter table public.quest_jury_scores enable row level security;
+revoke all on public.quest_jury_scores from anon, authenticated;
