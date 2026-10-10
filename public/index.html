@@ -1313,7 +1313,8 @@
         var line = '- ' + label + ': ' + value;
         var v = vm[label];
         if(v === 'correct') line += ' [CORRECT]';
-        else if(v === 'incorrect' || v === 'blank') line += ' [INCORRECT]';
+        else if(v === 'incorrect') line += ' [INCORRECT]';
+        else if(v === 'blank') line += ' [NOT ANSWERED]';
         lines.push(line);
       });
       if(n === 2){

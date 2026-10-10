@@ -360,7 +360,7 @@
         html += '<table class="ans">';
         ls.forEach(function(l){
           var v = verdictOf(g, l);
-          var mark = v === 'correct' ? ' <span class="v-correct">верно</span>' : (v ? ' <span class="v-incorrect">неверно</span>' : '');
+          var mark = v === 'correct' ? ' <span class="v-correct">верно</span>' : (v === 'blank' ? ' <span class="muted">нет ответа</span>' : (v ? ' <span class="v-incorrect">неверно</span>' : ''));
           html += '<tr><td>' + esc(l) + '</td><td>' + (g.fields[l] ? esc(g.fields[l]).replace(/\n/g, '<br>') : '<span class="muted">(пусто)</span>') + mark + '</td></tr>';
         });
         if(s === 2 && g.fields['S2 – words marked in draft']) {
@@ -441,7 +441,7 @@
     data.groups.forEach(function(g){
       orderedLabels(g).forEach(function(l){
         var v = verdictOf(g, l);
-        rows.push([g.group, stationOf(l), l, g.fields[l], v === 'correct' ? 'верно' : (v ? 'неверно' : '')]);
+        rows.push([g.group, stationOf(l), l, g.fields[l], v === 'correct' ? 'верно' : (v === 'blank' ? 'нет ответа' : (v ? 'неверно' : ''))]);
       });
     });
     download('gfp-quest_otvety.csv', rows);
