@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="ru" data-theme="light">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>GFP Quest · Табло</title>
+<title>Finance 2 Practice Quest · Scoreboard</title>
 <style>
   :root{
     --bg:#F7FAF8; --surface:#FFFFFF; --card:#FFFFFF; --primary:#1F6F78; --accent:#56B6A3;
@@ -49,21 +49,21 @@
 </head>
 <body>
 <header>
-  <h1>GFP Advisory Practice · промежуточные результаты</h1>
+  <h1>Finance 2 Practice Quest · Interim results</h1>
   <div class="ctl hidden" id="ctl">
-    <button type="button" id="hideBtn">Скрыть баллы</button>
-    <button type="button" id="detailBtn" class="on">Детали по станциям</button>
-    <button type="button" id="fsBtn">На весь экран</button>
-    <button type="button" id="themeBtn">Тема</button>
+    <button type="button" id="hideBtn">Hide scores</button>
+    <button type="button" id="detailBtn" class="on">Station details</button>
+    <button type="button" id="fsBtn">Full screen</button>
+    <button type="button" id="themeBtn">Theme</button>
   </div>
 </header>
 <main>
   <section class="login" id="loginBox">
-    <h2 style="margin-top:0;color:var(--primary)">Вход</h2>
-    <p class="muted" style="font-size:.7em">Введите пароль преподавателя. Он нужен один раз, затем табло обновляется само.</p>
+    <h2 style="margin-top:0;color:var(--primary)">Sign in</h2>
+    <p class="muted" style="font-size:.7em">Enter the teacher password. It is needed once, then the board refreshes by itself.</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <input type="password" id="pw" placeholder="Пароль" autocomplete="current-password" style="flex:1;min-width:180px">
-      <button type="button" id="loginBtn" class="on">Открыть табло</button>
+      <input type="password" id="pw" placeholder="Password" autocomplete="current-password" style="flex:1;min-width:180px">
+      <button type="button" id="loginBtn" class="on">Open scoreboard</button>
     </div>
     <div class="err" id="loginErr"></div>
   </section>
@@ -77,7 +77,7 @@
   var password = '', data = null, showDetail = true, hidden = false, timer = null;
   function $(id){ return document.getElementById(id); }
   function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
-  function n1(x){ return (Math.round(x * 10) / 10).toString().replace('.', ','); }
+  function n1(x){ return (Math.round(x * 10) / 10).toString(); }
 
   function setTheme(m){ document.documentElement.setAttribute('data-theme', m); try{ localStorage.setItem('gfpq-theme', m); }catch(e){} }
   try{ var t = localStorage.getItem('gfpq-theme'); if(t === 'light' || t === 'dark') setTheme(t); }catch(e){}
@@ -88,7 +88,7 @@
   };
   $('hideBtn').onclick = function(){
     hidden = !hidden;
-    $('hideBtn').textContent = hidden ? 'Показать баллы' : 'Скрыть баллы';
+    $('hideBtn').textContent = hidden ? 'Show scores' : 'Hide scores';
     $('hideBtn').classList.toggle('on', hidden);
     render();
   };
@@ -109,7 +109,7 @@
   function login(){
     password = $('pw').value;
     $('loginErr').textContent = '';
-    if(!password){ $('loginErr').textContent = 'Введите пароль.'; return; }
+    if(!password){ $('loginErr').textContent = 'Please enter the password.'; return; }
     load().then(function(){
       try{ sessionStorage.setItem('gfpq-board', password); }catch(e){}
       $('loginBox').classList.add('hidden');
@@ -117,7 +117,7 @@
       $('ctl').classList.remove('hidden');
       timer = setInterval(function(){ load().catch(function(){}); }, 10000);
     }).catch(function(e){
-      $('loginErr').textContent = e.status === 401 ? 'Неверный пароль.' : 'Не удалось подключиться: ' + e.message;
+      $('loginErr').textContent = e.status === 401 ? 'Wrong password.' : 'Could not connect: ' + e.message;
     });
   }
   $('loginBtn').onclick = login;
@@ -131,9 +131,9 @@
       var pa = a.place || 99, pb = b.place || 99;
       return pa !== pb ? pa - pb : a.group.localeCompare(b.group);
     });
-    var h = '<tr><th>Место</th><th class="l">Группа</th>';
-    if(showDetail){ for(var s = 1; s <= 6; s++) h += '<th>Станция ' + s + '<br><span class="sub">из 10</span></th>'; }
-    h += '<th class="l">Итого жюри (среднее, из 60)</th><th>Станций пройдено</th><th>Закрытые задания</th></tr>';
+    var h = '<tr><th>Place</th><th class="l">Group</th>';
+    if(showDetail){ for(var s = 1; s <= 6; s++) h += '<th>Station ' + s + '<br><span class="sub">out of 10</span></th>'; }
+    h += '<th class="l">Jury total (average, out of 60)</th><th>Stations completed</th><th>Closed tasks</th></tr>';
     rows.forEach(function(g){
       var j = g.jury, pct = j.any ? Math.min(100, j.total / 60 * 100) : 0;
       h += '<tr><td class="place"><span>' + (g.place || '—') + '</span></td><td class="group">' + esc(g.group) + '</td>';
@@ -144,12 +144,12 @@
         }
       }
       h += '<td class="total"><div class="totnum">' + (j.any ? n1(j.total) : '—') + '</div><div class="bar"><i style="width:' + pct + '%"></i></div></td>';
-      h += '<td class="num"><span>' + g.stations_done + ' из 6</span>' + (g.finished ? '<div class="sub">завершили</div>' : '') + '</td>';
-      h += '<td class="num"><span>' + (g.closed.checked ? g.closed.correct + ' из ' + g.closed.total : '—') + '</span>' + (g.closed.checked ? '<div class="sub">блоков ' + g.closed.checked + ' из ' + g.closed.blocks + '</div>' : '') + '</td></tr>';
+      h += '<td class="num"><span>' + g.stations_done + ' of 6</span>' + (g.finished ? '<div class="sub">finished</div>' : '') + '</td>';
+      h += '<td class="num"><span>' + (g.closed.checked ? g.closed.correct + ' of ' + g.closed.total : '—') + '</span>' + (g.closed.checked ? '<div class="sub">blocks checked ' + g.closed.checked + ' of ' + g.closed.blocks + '</div>' : '') + '</td></tr>';
     });
     $('tbl').innerHTML = h;
     $('tbl').className = hidden ? 'hide' : '';
-    $('foot').textContent = 'Баллы жюри усреднены по всем членам жюри. Закрытые задания показаны как число верных пунктов. Обновлено ' + new Date().toLocaleTimeString();
+    $('foot').textContent = 'Jury scores are averaged over all jury members. Closed tasks show the number of correct items. Updated ' + new Date().toLocaleTimeString('en-GB');
   }
 </script>
 </body>

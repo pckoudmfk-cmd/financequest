@@ -1,4 +1,4 @@
-# GFP Advisory Practice: квест с автосохранением
+# Finance 2 Practice Quest: квест с автосохранением
 
 Структура: public/ (index.html для студентов, teacher.html для преподавателя), api/ (функции Vercel), lib/ (логика, ключи ответов, доступ к базе), supabase.sql (таблицы), tests/ (проверки).
 
